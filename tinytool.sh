@@ -1364,7 +1364,8 @@ _net_test() {
         local label="${entry##*:}"
         if ping -c2 -W2 "$target" &>/dev/null; then
             local delay
-            delay=$(ping -c2 -W2 "$target" 2>/dev/null | tail -1 | grep -oE '=[0-9.]+/' | tr -d '=/')
+            # 兼容不同系统的 ping 输出格式 (rtt min/avg/max/mdev = x/x/x/x ms)
+            delay=$(ping -c2 -W2 "$target" 2>/dev/null | tail -1 | grep -oE '[0-9.]+/[0-9.]+' | head -1 | cut -d/ -f2)
             printf "  ${C_G}√${C_0} %-25s %-8s 延迟 %sms\n" "$target" "[$label]" "${delay:-N/A}"
         else
             printf "  ${C_R}×${C_0} %-25s %-8s 不通\n" "$target" "[$label]"
@@ -1373,14 +1374,33 @@ _net_test() {
     echo ""
     _info "下载速度测试"
     _line
-    local speed
-    speed=$(curl -o /dev/null -s -w '%{speed_download}' --max-time 5 "https://mirrors.aliyun.com/centos/timestamp.txt" 2>/dev/null)
+    # 使用多个备用 URL，取第一个成功的
+    local speed http_code
+    local test_urls=(
+        "https://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-Official"
+        "https://mirrors.cloud.tencent.com/centos/RPM-GPG-KEY-CentOS-Official"
+        "https://mirrors.tuna.tsinghua.edu.cn/centos/RPM-GPG-KEY-CentOS-Official"
+    )
+    for url in "${test_urls[@]}"; do
+        local result
+        result=$(curl -o /dev/null -s -L -w '%{speed_download} %{http_code}' --max-time 8 --connect-timeout 4 "$url" 2>/dev/null)
+        read -r speed http_code <<< "$result"
+        if [[ "$http_code" =~ ^2 && "$speed" != "0.000" && -n "$speed" ]]; then
+            break
+        fi
+    done
     if [[ -n "$speed" && "$speed" != "0.000" ]]; then
         local speed_mb
         speed_mb=$(awk "BEGIN{printf \"%.1f\", ${speed}/1048576}")
-        echo -e "  下载速度: ${C_W}${speed_mb} MB/s${C_0}"
+        local speed_kb
+        speed_kb=$(awk "BEGIN{printf \"%.0f\", ${speed}/1024}")
+        if (( $(awk "BEGIN{print (${speed_mb} < 1.0) ? 1 : 0}") )); then
+            echo -e "  下载速度: ${C_W}${speed_kb} KB/s${C_0}"
+        else
+            echo -e "  下载速度: ${C_W}${speed_mb} MB/s${C_0}"
+        fi
     else
-        _warn "下载测试失败"
+        _warn "下载测试失败 (所有节点均不可达)"
     fi
 }
 

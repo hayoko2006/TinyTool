@@ -7,7 +7,7 @@
 #           自动适配 CentOS / Ubuntu / Debian
 # ============================================================================
 
-readonly VERSION="1.0.1"
+readonly VERSION="1.1.0"
 readonly SCRIPT_URL="https://tinytool.hayoko.cn/tinytool.sh"
 readonly GITHUB_RAW="https://raw.githubusercontent.com/hayoko2006/TinyTool/main/tinytool.sh"
 

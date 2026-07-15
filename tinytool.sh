@@ -74,7 +74,7 @@ _pkg_install() {
 LANG_CODE="zh"
 
 # 翻译字典 (通过 key 返回对应语言的文本)
-_t() {
+_T() {
     local key="$1"
     # 中文为默认，英文在 _T_EN 中查找，找不到则返回原 key（中文）
     if [[ "$LANG_CODE" == "en" ]]; then

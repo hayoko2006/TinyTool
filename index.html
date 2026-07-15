@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyTool - 一条命令，开启自动化运维旅程</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e1a;
+            --bg-card: #111827;
+            --bg-hover: #1a2332;
+            --border: #1f2937;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --text-muted: #64748b;
+            --primary: #06b6d4;
+            --primary-dim: #0891b2;
+            --primary-glow: rgba(6,182,212,0.15);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans SC', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+        /* Nav */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0;
+            background: rgba(10,14,26,0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+        nav .container {
+            display: flex; align-items: center; justify-content: space-between;
+            height: 60px;
+        }
+        .nav-brand {
+            font-weight: 900; font-size: 1.2rem;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .nav-brand svg { width: 24px; height: 24px; fill: var(--primary); }
+        .nav-links { display: flex; gap: 28px; list-style: none; }
+        .nav-links a {
+            color: var(--text-dim); text-decoration: none; font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--primary); }
+        .nav-cta {
+            background: var(--primary); color: #000 !important;
+            padding: 6px 16px; border-radius: 6px; font-weight: 600;
+            transition: all 0.2s;
+        }
+        .nav-cta:hover { background: var(--primary-dim); transform: translateY(-1px); }
+
+        /* Hero */
+        .hero {
+            padding: 140px 0 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        .hero h1 {
+            font-size: 3rem; font-weight: 900; line-height: 1.2;
+            margin-bottom: 16px;
+        }
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero-subtitle {
+            color: var(--text-dim); font-size: 1.15rem; max-width: 560px;
+            margin: 0 auto 40px;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            padding: 8px 20px; border-radius: 100px; font-size: 0.85rem;
+            color: var(--text-dim); margin-bottom: 32px;
+        }
+        .hero-badge .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--success); animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        /* Terminal */
+        .terminal {
+            max-width: 700px; margin: 0 auto 40px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+        .terminal-header {
+            display: flex; align-items: center; gap: 8px;
+            padding: 12px 16px; background: #0d1117;
+            border-bottom: 1px solid var(--border);
+        }
+        .terminal-header .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .terminal-header .dot.r { background: #ff5f56; }
+        .terminal-header .dot.y { background: #ffbd2e; }
+        .terminal-header .dot.g { background: #27c93f; }
+        .terminal-body {
+            padding: 20px 24px; font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem; line-height: 1.8; text-align: left;
+        }
+        .terminal-body .prompt { color: var(--success); }
+        .terminal-body .cmd { color: var(--text); }
+        .terminal-body .comment { color: var(--text-muted); }
+        .terminal-body .highlight { color: var(--primary); }
+        .copy-btn {
+            position: absolute; top: 52px; right: 16px;
+            background: var(--bg-hover); border: 1px solid var(--border);
+            color: var(--text-dim); padding: 4px 12px; border-radius: 4px;
+            font-size: 0.75rem; cursor: pointer; transition: all 0.2s;
+        }
+        .copy-btn:hover { color: var(--text); border-color: var(--text-muted); }
+        .terminal-wrap { position: relative; max-width: 700px; margin: 0 auto; }
+
+        /* Stats */
+        .stats {
+            display: flex; justify-content: center; gap: 48px;
+            flex-wrap: wrap; padding: 40px 0;
+        }
+        .stat-item { text-align: center; }
+        .stat-num {
+            font-size: 2rem; font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .stat-label { color: var(--text-muted); font-size: 0.85rem; }
+
+        /* Features */
+        .section { padding: 60px 0; }
+        .section-title {
+            text-align: center; font-size: 2rem; font-weight: 700;
+            margin-bottom: 48px;
+        }
+        .features {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .feature-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 24px;
+            transition: all 0.25s; position: relative;
+        }
+        .feature-card:hover {
+            border-color: var(--primary-dim);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(6,182,212,0.08);
+        }
+        .feature-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0;
+            height: 2px; background: linear-gradient(90deg, var(--primary), #8b5cf6);
+            border-radius: 12px 12px 0 0; opacity: 0; transition: opacity 0.25s;
+        }
+        .feature-card:hover::before { opacity: 1; }
+        .feature-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: var(--primary-glow); display: flex;
+            align-items: center; justify-content: center; margin-bottom: 14px;
+            font-size: 1.2rem;
+        }
+        .feature-card h3 {
+            font-size: 1rem; font-weight: 700; margin-bottom: 8px;
+        }
+        .feature-card p {
+            color: var(--text-dim); font-size: 0.85rem; line-height: 1.6;
+        }
+
+        /* Compatibility */
+        .compat-bar {
+            display: flex; justify-content: center; gap: 20px;
+            flex-wrap: wrap; margin-top: 32px;
+        }
+        .compat-item {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            padding: 8px 16px; border-radius: 8px; font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+        .compat-item.ok { color: var(--success); }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border); padding: 40px 0;
+            text-align: center; color: var(--text-muted); font-size: 0.85rem;
+        }
+        footer a { color: var(--text-dim); text-decoration: none; }
+        footer a:hover { color: var(--primary); }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .nav-links { display: none; }
+            .stats { gap: 24px; }
+            .terminal-body { font-size: 0.8rem; padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <div class="nav-brand">
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                TinyTool
+            </div>
+            <ul class="nav-links">
+                <li><a href="#features">功能</a></li>
+                <li><a href="#install">安装</a></li>
+                <li><a href="https://github.com/hayoko2006/TinyTool">GitHub</a></li>
+                <li><a href="https://github.com/hayoko2006/TinyTool/blob/main/README.md">文档</a></li>
+            </ul>
+            <a href="#install" class="nav-cta">立即使用</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-badge">
+                <span class="dot"></span>
+                v1.0.0 已发布 - 支持 CentOS / Ubuntu / Debian
+            </div>
+            <h1>一条命令<br><span>开启自动化运维旅程</span></h1>
+            <p class="hero-subtitle">
+                TinyTool 是专为 Linux 服务器打造的极简运维工具，
+                14 大功能模块，自动检测系统环境，自带更新与环境修复机制。
+            </p>
+
+            <div class="terminal-wrap" id="install">
+                <div class="terminal">
+                    <div class="terminal-header">
+                        <span class="dot r"></span>
+                        <span class="dot y"></span>
+                        <span class="dot g"></span>
+                    </div>
+                    <div class="terminal-body">
+                        <div><span class="prompt">root@server:~#</span> <span class="cmd">bash &lt;(curl -sL https://tinytool.hayoko.cn/tinytool.sh)</span></div>
+                        <div><span class="comment"># 或</span></div>
+                        <div><span class="prompt">root@server:~#</span> <span class="cmd">wget -qO- https://tinytool.hayoko.cn/tinytool.sh | bash</span></div>
+                    </div>
+                </div>
+                <button class="copy-btn" onclick="copyCmd()">复制命令</button>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item"><div class="stat-num">14</div><div class="stat-label">功能模块</div></div>
+                <div class="stat-item"><div class="stat-num">2700+</div><div class="stat-label">行代码</div></div>
+                <div class="stat-item"><div class="stat-num">78</div><div class="stat-label">函数</div></div>
+                <div class="stat-item"><div class="stat-num">1</div><div class="stat-label">条命令启动</div></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="features">
+        <div class="container">
+            <h2 class="section-title">功能模块</h2>
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F50E;</div>
+                    <h3>系统自检</h3>
+                    <p>8 项健康度检测：CPU、内存、磁盘、网络、安全、服务、更新，生成评分报告。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F504;</div>
+                    <h3>软件源管理</h3>
+                    <p>阿里云/清华/中科大/腾讯/华为 5 大镜像源一键切换，自动备份与恢复。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F4BE;</div>
+                    <h3>存储管理</h3>
+                    <p>数据盘自动挂载(fstab 持久化)、LVM 在线扩容、磁盘占用分析、大文件排查。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x2699;&#xFE0F;</div>
+                    <h3>系统管理</h3>
+                    <p>一键系统更新、时区设置+时间同步、Swap 管理、缓存清理、服务管理。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F310;</div>
+                    <h3>DNS 管理</h3>
+                    <p>5 种 DNS 切换、解析测试、延迟测速、一键恢复默认配置。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F6E1;&#xFE0F;</div>
+                    <h3>网络管理</h3>
+                    <p>SSH 端口修改、防火墙管理、邮件服务检测、连通性测试、端口扫描。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F511;</div>
+                    <h3>SSH 管理</h3>
+                    <p>配置查看、一键安全加固、禁止密码登录、密钥管理、fail2ban 防爆破。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F3E0;</div>
+                    <h3>宝塔管理</h3>
+                    <p>一键安装宝塔面板、信息查看、密码重置、数据盘挂载到 /www、卸载。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F50C;</div>
+                    <h3>Caddy 管理</h3>
+                    <p>官方源安装、状态查看、启停控制、Caddyfile 编辑、一键卸载。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F433;</div>
+                    <h3>Docker 管理</h3>
+                    <p>官方脚本安装+镜像加速、数据目录迁移、分层清理、Compose 管理。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F4C8;</div>
+                    <h3>进程监控</h3>
+                    <p>CPU/内存 TOP 20、按名称/端口查找进程、kill 结束进程、进程树查看。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F4CB;</div>
+                    <h3>日志工具</h3>
+                    <p>系统日志、认证日志、Web 日志、dmesg、启动日志、关键词搜索、清空。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x23F0;</div>
+                    <h3>定时任务</h3>
+                    <p>查看/新增/删除 crontab 任务、编辑 crontab、服务状态、常用模板。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F4E4;</div>
+                    <h3>配置导出</h3>
+                    <p>系统配置一键导出（网络/SSH/防火墙/定时任务/磁盘/软件包），打包 tar.gz。</p>
+                </div>
+            </div>
+
+            <div class="compat-bar">
+                <div class="compat-item ok">&#x2713; CentOS 7+</div>
+                <div class="compat-item ok">&#x2713; RHEL / Rocky / AlmaLinux</div>
+                <div class="compat-item ok">&#x2713; Ubuntu 18.04+</div>
+                <div class="compat-item ok">&#x2713; Debian 9+</div>
+                <div class="compat-item ok">&#x2713; 自动适配系统</div>
+                <div class="compat-item ok">&#x2713; 自动修复环境</div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>TinyTool &copy; 2025 Hayoko | <a href="https://github.com/hayoko2006/TinyTool">GitHub</a> | <a href="https://tinytool.hayoko.cn">tinytool.hayoko.cn</a></p>
+        </div>
+    </footer>
+
+    <script>
+        function copyCmd() {
+            const cmd = 'bash <(curl -sL https://tinytool.hayoko.cn/tinytool.sh)';
+            navigator.clipboard.writeText(cmd).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = '已复制';
+                setTimeout(() => btn.textContent = '复制命令', 2000);
+            });
+        }
+    </script>
+</body>
+</html>

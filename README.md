@@ -18,7 +18,7 @@
 
 ## 简介
 
-TinyTool 是一个极简、高效、自动化的 Linux 运维工具。只需一条命令即可部署到任意 Linux 服务器，自动检测系统环境（CentOS / Ubuntu / Debian），提供 14 大功能模块的交互式运维界面。
+TinyTool 是一个极简、高效、自动化的 Linux 运维工具。只需一条命令即可部署到任意 Linux 服务器，自动检测系统环境（CentOS / Ubuntu / Debian），提供 15 大功能模块的交互式运维界面。
 
 ## 快速开始
 
@@ -42,7 +42,7 @@ bash <(curl -sL https://raw.githubusercontent.com/hayoko2006/TinyTool/main/tinyt
 | 3 | 存储管理 | 磁盘分区查看、数据盘自动挂载(fstab 持久化)、LVM 在线扩容、占用分析、大文件排查 |
 | 4 | 系统管理 | 一键系统更新、时区设置+时间同步、Swap 管理、缓存清理、自启服务查看、重启 |
 | 5 | DNS 管理 | 5 种 DNS 切换、解析测试、延迟测速、一键恢复 |
-| 6 | 网络管理 | SSH 端口修改、防火墙管理(firewalld/ufw)、邮件服务检测、连通性测试、端口扫描 |
+| 6 | 网络管理 | SSH 端口修改、防火墙管理(firewalld/ufw)、**网络测速**(带宽/热门网站/延迟)、邮件服务检测、连通性测试、端口扫描 |
 | 7 | SSH 管理 | 配置查看、一键安全加固、禁止 root 密码登录、仅密钥模式、密钥生成/导入、登录日志、fail2ban 防爆破 |
 | 8 | 宝塔管理 | 一键安装、面板信息查看、密码重置、数据盘挂载到 /www、卸载 |
 | 9 | Caddy 管理 | 官方源安装、状态查看、启停控制、Caddyfile 编辑、卸载 |
@@ -51,6 +51,7 @@ bash <(curl -sL https://raw.githubusercontent.com/hayoko2006/TinyTool/main/tinyt
 | 12 | 日志工具 | 系统日志、认证日志、Nginx/Apache 日志、dmesg、启动日志、关键词搜索、日志清空 |
 | 13 | 定时任务 | 查看/新增/删除 crontab 任务、编辑 crontab、服务状态、常用模板 |
 | 14 | 配置导出 | 系统配置一键导出（网络/SSH/防火墙/定时任务/磁盘/软件包/服务列表），打包为 tar.gz |
+| 15 | 1Panel 管理 | 一键安装、面板信息查看、密码重置、端口修改、状态/重启、数据盘迁移、卸载 |
 
 ## 系统要求
 
@@ -69,9 +70,11 @@ bash <(curl -sL https://raw.githubusercontent.com/hayoko2006/TinyTool/main/tinyt
 
 ```
 TinyTool/
-├── tinytool.sh    # 主脚本（约 2700 行，14 个功能模块）
+├── tinytool.sh    # 主脚本（约 3100 行，15 个功能模块）
 ├── README.md      # 项目说明
-└── index.html     # 官网页面
+├── index.html     # 官网页面
+├── _headers       # EdgeOne Pages Headers 配置
+└── _redirects     # EdgeOne Pages Redirects 配置
 ```
 
 ## 部署到网站

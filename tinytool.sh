@@ -214,7 +214,7 @@ main_menu() {
         echo -e "  ${C_G}3)${C_0}  存储管理······················挂载、扩容、占用分析"
         echo -e "  ${C_G}4)${C_0}  系统管理······················系统更新、时区、Swap"
         echo -e "  ${C_G}5)${C_0}  DNS 管理·······················切换、测试、恢复"
-        echo -e "  ${C_G}6)${C_0}  网络管理······················SSH端口、防火墙、邮件检测"
+        echo -e "  ${C_G}6)${C_0}  网络管理······················SSH端口、防火墙、测速、邮件检测"
         echo -e "  ${C_G}7)${C_0}  SSH 管理······················SSH配置查看与安全加固"
         echo -e "  ${C_G}8)${C_0}  宝塔管理······················安装、密码、挂载数据盘"
         echo -e "  ${C_G}9)${C_0}  Caddy 管理·····················安装、卸载、状态"
@@ -223,11 +223,12 @@ main_menu() {
         echo -e "  ${C_G}12)${C_0} 日志工具······················系统日志快速查看"
         echo -e "  ${C_G}13)${C_0} 定时任务······················Crontab 管理"
         echo -e "  ${C_G}14)${C_0} 配置导出······················系统配置一键导出"
+        echo -e "  ${C_G}15)${C_0} 1Panel 管理···················安装、信息、密码、卸载"
         echo -e "  ${C_R}0)${C_0}  退出程序"
         echo ""
         _line
 
-        read -rp "$(echo -e "${C_W}请选择 [0-14]: ${C_0}")" choice
+        read -rp "$(echo -e "${C_W}请选择 [0-15]: ${C_0}")" choice
         case "$choice" in
             1)  m_syscheck ;;
             2)  m_mirror ;;
@@ -243,6 +244,7 @@ main_menu() {
             12) m_logs ;;
             13) m_cron ;;
             14) m_export ;;
+            15) m_1panel ;;
             0)  echo -e "${C_G}感谢使用 TinyTool，再见！${C_0}"; exit 0 ;;
             *)  _warn "无效选择" ;;
         esac
@@ -1202,13 +1204,15 @@ m_network() {
         echo -e "  ${C_G}4)${C_0} 网络连通性测试"
         echo -e "  ${C_G}5)${C_0} 端口扫描"
         echo -e "  ${C_G}6)${C_0} 查看网络连接"
+        echo -e "  ${C_G}7)${C_0} 网络测速"
         echo -e "  ${C_G}0)${C_0} 返回主菜单"
         echo ""
-        read -rp "$(echo -e "${C_W}选择 [0-6]: ${C_0}")" choice
+        read -rp "$(echo -e "${C_W}选择 [0-7]: ${C_0}")" choice
         case "$choice" in
             1) _net_sshport ;; 2) _net_firewall ;;
             3) _net_mail ;; 4) _net_test ;;
             5) _net_portscan ;; 6) _net_connections ;;
+            7) _net_speedtest ;;
             0) break ;; *) _warn "无效选择" ;;
         esac
         [[ "$choice" != "0" ]] && _pause
@@ -1402,6 +1406,207 @@ _net_portscan() {
             fi
         done
     fi
+}
+
+_net_speedtest() {
+    _title "网络测速"
+    echo -e "  ${C_G}1)${C_0} 综合带宽测速"
+    echo -e "  ${C_G}2)${C_0} 热门网站测速"
+    echo -e "  ${C_G}3)${C_0} 国内各节点延迟测试"
+    echo -e "  ${C_G}0)${C_0} 返回"
+    read -rp "$(echo -e "${C_W}选择 [0-3]: ${C_0}")" sc
+    case "$sc" in
+        1) _speedtest_bandwidth ;;
+ 2) _speedtest_sites ;; 3) _speedtest_latency ;; 0) return ;; esac
+}
+
+# ---------- 带宽测速 ----------
+_speedtest_bandwidth() {
+    _info "综合带宽测速"
+    _line
+
+    # 检查是否有 speedtest-cli
+    if _has speedtest-cli; then
+        _info "检测到 speedtest-cli，使用专业测速..."
+        _confirm "使用 speedtest-cli 进行完整测速？(需 30-60 秒)" && {
+            speedtest-cli --simple 2>/dev/null && return
+        }
+    fi
+
+    # 如果没有 speedtest-cli 提示安装
+    if ! _has speedtest-cli; then
+        _info "安装 speedtest-cli 可获得更精准的测速结果"
+        _confirm "是否安装 speedtest-cli？" && {
+            _pkg_install python3-pip 2>/dev/null
+            pip3 install speedtest-cli -q 2>/dev/null && _ok "安装成功" || _warn "安装失败"
+            if _has speedtest-cli; then
+                speedtest-cli --simple 2>/dev/null && return
+            fi
+        }
+    fi
+
+    # 内置测速：多节点下载
+    _info "使用多节点下载测试带宽..."
+    _line
+
+    local nodes=(
+        "阿里云镜像|https://mirrors.aliyun.com/centos/timestamp.txt"
+        "腾讯云镜像|https://mirrors.cloud.tencent.com/centos/timestamp.txt"
+        "华为云镜像|https://mirrors.huaweicloud.com/centos/timestamp.txt"
+        "清华源|https://mirrors.tuna.tsinghua.edu.cn/centos/timestamp.txt"
+        "中科大源|https://mirrors.ustc.edu.cn/centos/timestamp.txt"
+    )
+
+    local results=()
+
+    for entry in "${nodes[@]}"; do
+        local name="${entry%%|*}"
+        local url="${entry##*|}"
+        # 使用 curl 测速：下载 5 秒
+        local speed size time_s http_code
+        local output
+        output=$(curl -o /dev/null -s -w '%{speed_download} %{size_download} %{time_total} %{http_code}' \
+            --max-time 8 --connect-timeout 4 "$url" 2>/dev/null)
+        read -r speed size time_s http_code <<< "$output"
+
+        if [[ "$http_code" =~ ^2 && "$speed" != "0.000" ]]; then
+            local speed_mb
+            speed_mb=$(awk "BEGIN{printf \"%.2f\", ${speed}/1048576}")
+            printf "  ${C_G}%-12s${C_0} 下载: ${C_W}%7s MB/s${C_0}  耗时: ${C_D}%ss${C_0}\n" "$name" "$speed_mb" "${time_s}"
+            results+=("${name}|${speed_mb}")
+        else
+            printf "  ${C_R}%-12s${C_0} 连接失败或超时\n" "$name"
+            results+=("${name}|失败")
+        fi
+    done
+
+    # 计算平均速度
+    echo ""
+    local total=0 count=0
+    for r in "${results[@]}"; do
+        local s="${r##*|}"
+        if [[ "$s" != "失败" ]]; then
+            total=$(awk "BEGIN{print ${total}+${s}}")
+            count=$((count + 1))
+        fi
+    done
+    if [[ $count -gt 0 ]]; then
+        local avg
+        avg=$(awk "BEGIN{printf \"%.2f\", ${total}/${count}}")
+        echo -e "  ${C_P}平均下载速度: ${C_W}${avg} MB/s${C_0} (${count} 个节点)"
+    else
+        _warn "所有节点测试失败，请检查网络"
+    fi
+}
+
+# ---------- 热门网站测速 ----------
+_speedtest_sites() {
+    _title "热门网站测速"
+    _line
+
+    local sites=(
+        "百度       |https://www.baidu.com"
+        "淘宝       |https://www.taobao.com"
+        "京东       |https://www.jd.com"
+        "Bilibili   |https://www.bilibili.com"
+        "知乎       |https://www.zhihu.com"
+        "微博       |https://weibo.com"
+        "GitHub     |https://github.com"
+        "Google     |https://www.google.com"
+        "YouTube    |https://www.youtube.com"
+        "Cloudflare |https://www.cloudflare.com"
+    )
+
+    echo -e "  ${C_D}正在测试 ${#sites[@]} 个热门网站的 TCP 连接时间...${C_0}"
+    echo ""
+    printf "  ${C_D}%-12s${C_0}  %-8s  %-10s  %s\n" "网站" "状态" "响应时间" "TTFB"
+    _line
+
+    for entry in "${sites[@]}"; do
+        local name="${entry%%|*}"
+        local url="${entry##*|}"
+
+        # curl -o /dev/null 测量 time_total (总时间) 和 time_starttransfer (TTFB)
+        local result
+        result=$(curl -o /dev/null -s -w '%{http_code} %{time_total} %{time_starttransfer}' \
+            --max-time 8 --connect-timeout 4 -L "$url" 2>/dev/null)
+        local http_code time_total ttfb
+        read -r http_code time_total ttfb <<< "$result"
+
+        if [[ "$http_code" =~ ^[23] ]]; then
+            local ms_total ms_ttfb
+            ms_total=$(awk "BEGIN{printf \"%.0f\", ${time_total}*1000}")
+            ms_ttfb=$(awk "BEGIN{printf \"%.0f\", ${ttfb}*1000}")
+            if [[ ${ms_total:-0} -lt 500 ]]; then
+                printf "  ${C_G}%-12s${C_0}  %-8s  ${C_G}%-6s ms${C_0}  TTFB: %s ms\n" "$name" "$http_code" "$ms_total" "$ms_ttfb"
+            elif [[ ${ms_total:-0} -lt 1500 ]]; then
+                printf "  ${C_Y}%-12s${C_0}  %-8s  ${C_Y}%-6s ms${C_0}  TTFB: %s ms\n" "$name" "$http_code" "$ms_total" "$ms_ttfb"
+            else
+                printf "  ${C_R}%-12s${C_0}  %-8s  ${C_R}%-6s ms${C_0}  TTFB: %s ms\n" "$name" "$http_code" "$ms_total" "$ms_ttfb"
+            fi
+        else
+            printf "  ${C_D}%-12s${C_0}  %-8s  超时/不可达\n" "$name" "${http_code:-N/A}"
+        fi
+    done
+}
+
+# ---------- 延迟测试 ----------
+_speedtest_latency() {
+    _title "国内各节点延迟测试"
+    _line
+
+    local nodes=(
+        "北京电信|202.96.209.133"
+        "上海电信|101.226.4.6"
+        "广州电信|14.215.116.1"
+        "北京联通|202.106.195.68"
+        "上海联通|210.22.97.1"
+        "广州联通|221.5.88.88"
+        "北京移动|221.179.155.161"
+        "上海移动|221.183.41.1"
+        "广州移动|120.196.165.24"
+        "成都电信|61.139.2.69"
+        "武汉电信|202.103.24.12"
+        "南京电信|221.131.143.69"
+        "深圳联通|221.5.88.88"
+        "阿里DNS|223.5.5.5"
+        "腾讯DNS|119.29.29.29"
+        "114DNS|114.114.114.114"
+    )
+
+    echo -e "  ${C_D}正在 ping ${#nodes[@]} 个节点 (各 3 次)...\n${C_0}"
+
+    for entry in "${nodes[@]}"; do
+        local name="${entry%%|*}"
+        local ip="${entry##*|}"
+
+        # ping 3 次取平均
+        local ping_out
+        ping_out=$(ping -c 3 -W 3 -q "$ip" 2>/dev/null)
+
+        if [[ $? -eq 0 ]]; then
+            local avg loss
+            avg=$(echo "$ping_out" | grep -oP 'rtt min/avg/max/mdev = \K[0-9.]+' | head -1)
+            loss=$(echo "$ping_out" | grep -oP '\d+(?=% packet loss)')
+            loss="${loss:-0}"
+
+            if [[ -n "$avg" ]]; then
+                local ms
+                ms=$(awk "BEGIN{printf \"%.1f\", ${avg}}")
+                if (( $(awk "BEGIN{print ($ms < 30) ? 1 : 0}") )); then
+                    printf "  ${C_G}%-14s${C_0} 延迟: ${C_G}%6s ms${C_0}  丢包: %s%%\n" "$name" "$ms" "$loss"
+                elif (( $(awk "BEGIN{print ($ms < 80) ? 1 : 0}") )); then
+                    printf "  ${C_Y}%-14s${C_0} 延迟: ${C_Y}%6s ms${C_0}  丢包: %s%%\n" "$name" "$ms" "$loss"
+                else
+                    printf "  ${C_R}%-14s${C_0} 延迟: ${C_R}%6s ms${C_0}  丢包: %s%%\n" "$name" "$ms" "$loss"
+                fi
+            else
+                printf "  ${C_Y}%-14s${C_0} 延迟:     N/A ms  丢包: %s%%\n" "$name" "$loss"
+            fi
+        else
+            printf "  ${C_D}%-14s${C_0} 不可达\n" "$name"
+        fi
+    done
 }
 
 _net_connections() {
@@ -2711,6 +2916,191 @@ m_export() {
     ls -lh "$tar_file" 2>/dev/null | awk '{print $5, $9}'
     echo ""
     _warn "请下载以下文件后妥善保管: ${tar_file}"
+}
+
+# ============================ 模块 15: 1Panel 管理 ============================
+m_1panel() {
+    _title "1Panel 管理 - 安装、信息、密码、卸载"
+    while true; do
+        echo -e "  ${C_G}1)${C_0} 安装 1Panel"
+        echo -e "  ${C_G}2)${C_0} 查看面板信息"
+        echo -e "  ${C_G}3)${C_0} 重置密码"
+        echo -e "  ${C_G}4)${C_0} 修改端口"
+        echo -e "  ${C_G}5)${C_0} 查看 1Panel 状态"
+        echo -e "  ${C_G}6)${C_0} 重启 1Panel"
+        echo -e "  ${C_G}7)${C_0} 挂载数据盘到 1Panel"
+        echo -e "  ${C_G}8)${C_0} 卸载 1Panel"
+        echo -e "  ${C_G}0)${C_0} 返回主菜单"
+        echo ""
+        read -rp "$(echo -e "${C_W}选择 [0-8]: ${C_0}")" choice
+        case "$choice" in
+            1) _1panel_install ;; 2) _1panel_info ;;
+            3) _1panel_password ;; 4) _1panel_port ;;
+            5) _1panel_status ;; 6) _1panel_restart ;;
+            7) _1panel_mount ;; 8) _1panel_uninstall ;;
+            0) break ;; *) _warn "无效选择" ;;
+        esac
+        [[ "$choice" != "0" ]] && _pause
+    done
+}
+
+_1panel_install() {
+    if _has 1pctl; then
+        _warn "1Panel 已安装"
+        _confirm "是否重新安装 (将卸载后重装)？" || return
+    fi
+
+    _info "检查 Docker..."
+    if ! _has docker; then
+        _warn "1Panel 依赖 Docker，正在安装 Docker..."
+        curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
+        if ! _has docker; then
+            _err "Docker 安装失败，1Panel 无法继续安装"
+            return
+        fi
+        systemctl enable docker && systemctl start docker
+        _ok "Docker 安装完成"
+    fi
+
+    _confirm "将安装 1Panel，过程约 3-5 分钟，确认？" || return
+    _info "正在安装 1Panel..."
+    curl -sSL https://resource.fit2cloud.com/1panel/package/quick_start.sh -o /tmp/1panel_install.sh
+    bash /tmp/1panel_install.sh
+    rm -f /tmp/1panel_install.sh
+
+    if _has 1pctl; then
+        _ok "1Panel 安装完成"
+        echo ""
+        _1panel_info
+    else
+        _err "1Panel 安装失败，请查看上方日志"
+    fi
+}
+
+_1panel_info() {
+    if ! _has 1pctl; then
+        _err "1Panel 未安装"
+        return
+    fi
+    _info "1Panel 信息"
+    _line
+    1pctl user-info
+}
+
+_1panel_password() {
+    if ! _has 1pctl; then
+        _err "1Panel 未安装"
+        return
+    fi
+    read -rp "$(echo -e "${C_W}输入新密码 (回车自动生成): ${C_0}")" newpass
+    if [[ -n "$newpass" ]]; then
+        echo "$newpass" | 1pctl update password
+    else
+        1pctl update password
+    fi
+    _ok "密码已更新，新信息如下:"
+    1pctl user-info
+}
+
+_1panel_port() {
+    if ! _has 1pctl; then
+        _err "1Panel 未安装"
+        return
+    fi
+    local cur_port
+    cur_port=$(1pctl user-info 2>/dev/null | grep -oP '端口.*?:\s*\K\d+')
+    echo -e "  当前端口: ${C_W}${cur_port:-未知}${C_0}"
+    echo ""
+    read -rp "$(echo -e "${C_W}输入新端口号: ${C_0}")" new_port
+    [[ -z "$new_port" ]] && return
+    if ! [[ "$new_port" =~ ^[0-9]+$ ]] || [[ "$new_port" -lt 1 || "$new_port" -gt 65535 ]]; then
+        _err "无效端口号"
+        return
+    fi
+    1pctl update port "$new_port"
+    _ok "端口已修改为 ${new_port}"
+    # 防火墙放行
+    if _has firewall-cmd && systemctl is-active firewalld &>/dev/null; then
+        firewall-cmd --permanent --add-port="${new_port}/tcp" && firewall-cmd --reload
+        _ok "firewalld 已放行端口 ${new_port}"
+    elif _has ufw; then
+        ufw allow "${new_port}/tcp" && _ok "ufw 已放行端口 ${new_port}"
+    fi
+}
+
+_1panel_status() {
+    if ! _has 1pctl; then
+        _err "1Panel 未安装"
+        return
+    fi
+    _info "1Panel 运行状态"
+    _line
+    1pctl status
+    echo ""
+    _info "Docker 容器状态"
+    docker ps --filter "name=1panel" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null
+}
+
+_1panel_restart() {
+    if ! _has 1pctl; then
+        _err "1Panel 未安装"
+        return
+    fi
+    _confirm "确认重启 1Panel？" || return
+    1pctl restart && _ok "1Panel 已重启" || _err "重启失败"
+}
+
+_1panel_mount() {
+    if ! _has 1pctl; then
+        _warn "1Panel 未安装，请先安装后再挂载数据盘"
+        return
+    fi
+
+    _info "1Panel 默认数据目录:"
+    docker inspect 1panel 2>/dev/null | grep -oP 'Source.*?1panel[^"]*' | head -3
+    local default_dir
+    default_dir=$(docker inspect 1panel 2>/dev/null | grep -oP '(?<=Source":")[^"]+' | grep 1panel | head -1)
+    echo -e "  数据目录: ${C_W}${default_dir:-/opt/1panel}${C_0}"
+    echo ""
+    read -rp "$(echo -e "${C_W}数据盘挂载点 (如 /data): ${C_0}")" mnt
+    [[ -z "$mnt" ]] && return
+
+    if [[ ! -d "$mnt" ]]; then
+        _err "目录 ${mnt} 不存在，请先挂载数据盘 (使用存储管理功能)"
+        return
+    fi
+
+    local target="${mnt}/1panel"
+    _confirm "将 1Panel 数据迁移到 ${target} ？" || return
+
+    _info "停止 1Panel..."
+    1pctl stop 2>/dev/null
+
+    # 迁移数据
+    mkdir -p "$target"
+    if [[ -d "${default_dir:-/opt/1panel}" ]]; then
+        _info "正在迁移数据..."
+        cp -rp "${default_dir:-/opt/1panel}"/* "$target/"
+        _ok "数据迁移完成"
+    fi
+
+    _info "更新 1Panel 数据目录配置..."
+    sed -i "s|BASE_DIR=.*|BASE_DIR=${target}|g" /usr/local/bin/1pctl 2>/dev/null
+
+    _info "启动 1Panel..."
+    1pctl start 2>/dev/null
+    _ok "1Panel 数据盘挂载完成"
+}
+
+_1panel_uninstall() {
+    if ! _has 1pctl; then
+        _err "1Panel 未安装"
+        return
+    fi
+    _warn "⚠ 此操作将卸载 1Panel 及其所有数据（包括网站、数据库等），不可逆！"
+    _confirm "确认卸载 1Panel？" || return
+    1pctl uninstall
+    _ok "1Panel 已卸载"
 }
 
 # ============================ 入口 ==========================================

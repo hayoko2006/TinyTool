@@ -48,10 +48,10 @@ _confirm() {
 }
 
 # 暂停
-_pause() { read -rp "$(echo -e "${C_D}按回车继续...${C_0}")"; }
+_pause() { read -rp "$(echo -e "${C_D}$(_T press_enter)${C_0}")"; }
 
 # 分隔线
-_line() { echo -e "${C_D}────────────────────────────────────────────────${C_0}"; }
+_line() { echo -e "${C_D}─────────────────────────────────────────────────────────────${C_0}"; }
 
 # 标题
 _title() { echo -e "\n${C_P}═══ $* ═══${C_0}\n"; }
@@ -70,11 +70,151 @@ _pkg_install() {
     fi
 }
 
+# ============================ 国际化 i18n ==================================
+LANG_CODE="zh"
+
+# 翻译字典 (通过 key 返回对应语言的文本)
+_t() {
+    local key="$1"
+    # 中文为默认，英文在 _T_EN 中查找，找不到则返回原 key（中文）
+    if [[ "$LANG_CODE" == "en" ]]; then
+        local val
+        val=$(eval "echo \${_T_EN_${key}:-}")
+        if [[ -n "$val" ]]; then
+            echo "$val"
+            return
+        fi
+    fi
+    # 默认中文
+    local val
+    val=$(eval "echo \${_T_ZH_${key}:-}")
+    [[ -n "$val" ]] && echo "$val" || echo "$key"
+}
+
+# ===== 中文字典 =====
+_T_ZH_menu_sys="系统工具"
+_T_ZH_menu_net="网络工具"
+_T_ZH_menu_panel="面板与服务"
+_T_ZH_menu_monitor="监控与日志"
+_T_ZH_menu_util="实用工具"
+
+_T_ZH_m1="系统自检"
+_T_ZH_m1d="健康度检测与报告"
+_T_ZH_m2="软件源管理"
+_T_ZH_m2d="更换国内镜像源"
+_T_ZH_m3="存储管理"
+_T_ZH_m3d="挂载、扩容、占用分析"
+_T_ZH_m4="系统管理"
+_T_ZH_m4d="系统更新、时区、Swap"
+_T_ZH_m5="DNS 管理"
+_T_ZH_m5d="切换、测试、恢复"
+_T_ZH_m6="网络管理"
+_T_ZH_m6d="SSH端口、防火墙、测速、邮件检测"
+_T_ZH_m7="SSH 管理"
+_T_ZH_m7d="配置查看与安全加固"
+_T_ZH_m8="宝塔管理"
+_T_ZH_m8d="安装、密码、挂载数据盘"
+_T_ZH_m9="Caddy 管理"
+_T_ZH_m9d="安装、卸载、状态"
+_T_ZH_m10="Docker 管理"
+_T_ZH_m10d="安装、迁移、清理"
+_T_ZH_m11="进程监控"
+_T_ZH_m11d="实时进程查看与管理"
+_T_ZH_m12="日志工具"
+_T_ZH_m12d="系统日志快速查看"
+_T_ZH_m13="定时任务"
+_T_ZH_m13d="Crontab 管理"
+_T_ZH_m14="配置导出"
+_T_ZH_m14d="系统配置一键导出"
+_T_ZH_m15="1Panel 管理"
+_T_ZH_m15d="安装、信息、密码、卸载"
+_T_ZH_m0="退出程序"
+_T_ZH_prompt_select="请选择"
+
+_T_ZH_version="版本"
+_T_ZH_system="系统"
+_T_ZH_arch="架构"
+_T_ZH_pkgmgr="包管"
+_T_ZH_slogan="一条命令，开启自动化运维旅程"
+
+_T_ZH_root_required="请使用 root 用户运行此脚本！"
+_T_ZH_root_hint="提示: sudo -i 切换 root 后重试"
+_T_ZH_unknown_os="无法识别系统类型！"
+
+_T_ZH_press_enter="按回车继续..."
+_T_ZH_invalid_choice="无效选择"
+_T_ZH_goodbye="感谢使用 TinyTool，再见！"
+
+# ===== English Dictionary =====
+_T_EN_menu_sys="System Tools"
+_T_EN_menu_net="Network Tools"
+_T_EN_menu_panel="Panels & Services"
+_T_EN_menu_monitor="Monitor & Logs"
+_T_EN_menu_util="Utilities"
+
+_T_EN_m1="System Check"
+_T_EN_m1d="Health check & report"
+_T_EN_m2="Repo Mirror"
+_T_EN_m2d="Switch to domestic mirrors"
+_T_EN_m3="Storage"
+_T_EN_m3d="Mount, expand, usage analysis"
+_T_EN_m4="System"
+_T_EN_m4d="Update, timezone, Swap"
+_T_EN_m5="DNS"
+_T_EN_m5d="Switch, test, restore"
+_T_EN_m6="Network"
+_T_EN_m6d="SSH port, firewall, speedtest, mail"
+_T_EN_m7="SSH"
+_T_EN_m7d="Config & hardening"
+_T_EN_m8="aaPanel"
+_T_EN_m8d="Install, password, data disk"
+_T_EN_m9="Caddy"
+_T_EN_m9d="Install, uninstall, status"
+_T_EN_m10="Docker"
+_T_EN_m10d="Install, migrate, prune"
+_T_EN_m11="Process"
+_T_EN_m11d="Real-time process manager"
+_T_EN_m12="Logs"
+_T_EN_m12d="Quick log viewer"
+_T_EN_m13="Cron"
+_T_EN_m13d="Crontab management"
+_T_EN_m14="Export"
+_T_EN_m14d="Export system config"
+_T_EN_m15="1Panel"
+_T_EN_m15d="Install, info, password, remove"
+_T_EN_m0="Exit"
+_T_EN_prompt_select="Please choose"
+
+_T_EN_version="Ver"
+_T_EN_system="OS"
+_T_EN_arch="Arch"
+_T_EN_pkgmgr="Pkg"
+_T_EN_slogan="One command, automate your ops journey"
+
+_T_EN_root_required="Please run as root!"
+_T_EN_root_hint="Hint: use 'sudo -i' to switch to root"
+_T_EN_unknown_os="Unable to detect OS type!"
+
+_T_EN_press_enter="Press Enter to continue..."
+_T_EN_invalid_choice="Invalid selection"
+_T_EN_goodbye="Thanks for using TinyTool!"
+
+# 语言切换
+_switch_lang() {
+    if [[ "$LANG_CODE" == "zh" ]]; then
+        LANG_CODE="en"
+        _ok "Language switched to English"
+    else
+        LANG_CODE="zh"
+        _ok "语言已切换为中文"
+    fi
+}
+
 # ============================ Root 检查 ======================================
 check_root() {
     if [[ $EUID -ne 0 ]]; then
-        _err "请使用 root 用户运行此脚本！"
-        _info "提示: sudo -i 切换 root 后重试"
+        _err "$(_T root_required)"
+        _info "$(_T root_hint)"
         exit 1
     fi
 }
@@ -97,7 +237,7 @@ detect_system() {
         SYS="centos"
         SYS_VER=$(grep -oE '[0-9]+' /etc/redhat-release | head -1)
     else
-        _err "无法识别系统类型！"
+        _err "$(_T unknown_os)"
         exit 1
     fi
 
@@ -198,37 +338,62 @@ show_banner() {
   ║   | |   | | | | | | | |_| |   | |   | (_) | | (_) | | |   ║
   ║   |_|   |_| |_| |_|  \__, |   |_|    \___/   \___/  |_|   ║
   ║                      |___/                                ║
-  ║            一条命令，开启自动化运维旅程                  ║
-  ╚══════════════════════════════════════════════════════════╝
 BANNER
+    # 标语根据语言切换
+    if [[ "$LANG_CODE" == "zh" ]]; then
+        echo -e "  ║${C_C}            一条命令，开启自动化运维旅程                  ${C_0}${C_C}║"
+    else
+        echo -e "  ║${C_C}       One command, automate your ops journey          ${C_0}${C_C}║"
+    fi
+    echo -e "${C_C}  ╚══════════════════════════════════════════════════════════╝"
     echo -e "${C_0}"
-    echo -e "  ${C_D}版本:${C_0} v${VERSION}  ${C_D}系统:${C_0} ${SYS^} ${SYS_VER}  ${C_D}架构:${C_0} ${ARCH}  ${C_D}包管:${C_0} ${PM}"
+    echo -e "  ${C_D}$(_T version):${C_0} v${VERSION}  ${C_D}$(_T system):${C_0} ${SYS^} ${SYS_VER}  ${C_D}$(_T arch):${C_0} ${ARCH}  ${C_D}$(_T pkgmgr):${C_0} ${PM}  ${C_D}[L]:${C_0} ${LANG_CODE^^}"
     _line
+}
+
+# 打印菜单项辅助
+_menu_item() {
+    local num=$1
+    local name desc
+    name="$(_T "m${num}")"
+    desc="$(_T "m${num}d")"
+    printf "  ${C_G}%2s)${C_0}  %-18s %s\n" "$num" "$name" "$desc"
 }
 
 main_menu() {
     while true; do
         show_banner
-        echo -e "  ${C_G}1)${C_0}  系统自检······················健康度检测与报告"
-        echo -e "  ${C_G}2)${C_0}  软件源管理····················更换国内镜像源"
-        echo -e "  ${C_G}3)${C_0}  存储管理······················挂载、扩容、占用分析"
-        echo -e "  ${C_G}4)${C_0}  系统管理······················系统更新、时区、Swap"
-        echo -e "  ${C_G}5)${C_0}  DNS 管理·······················切换、测试、恢复"
-        echo -e "  ${C_G}6)${C_0}  网络管理······················SSH端口、防火墙、测速、邮件检测"
-        echo -e "  ${C_G}7)${C_0}  SSH 管理······················SSH配置查看与安全加固"
-        echo -e "  ${C_G}8)${C_0}  宝塔管理······················安装、密码、挂载数据盘"
-        echo -e "  ${C_G}9)${C_0}  Caddy 管理·····················安装、卸载、状态"
-        echo -e "  ${C_G}10)${C_0} Docker 管理····················安装、迁移、清理"
-        echo -e "  ${C_G}11)${C_0} 进程监控······················实时进程查看与管理"
-        echo -e "  ${C_G}12)${C_0} 日志工具······················系统日志快速查看"
-        echo -e "  ${C_G}13)${C_0} 定时任务······················Crontab 管理"
-        echo -e "  ${C_G}14)${C_0} 配置导出······················系统配置一键导出"
-        echo -e "  ${C_G}15)${C_0} 1Panel 管理···················安装、信息、密码、卸载"
-        echo -e "  ${C_R}0)${C_0}  退出程序"
+        echo -e "  ${C_Y}─── $(_T menu_sys) ───${C_0}"
+        _menu_item 1
+        _menu_item 2
+        _menu_item 3
+        _menu_item 4
+
+        echo -e "  ${C_Y}─── $(_T menu_net) ───${C_0}"
+        _menu_item 5
+        _menu_item 6
+        _menu_item 7
+
+        echo -e "  ${C_Y}─── $(_T menu_panel) ───${C_0}"
+        _menu_item 8
+        _menu_item 9
+        _menu_item 10
+        _menu_item 15
+
+        echo -e "  ${C_Y}─── $(_T menu_monitor) ───${C_0}"
+        _menu_item 11
+        _menu_item 12
+
+        echo -e "  ${C_Y}─── $(_T menu_util) ───${C_0}"
+        _menu_item 13
+        _menu_item 14
+
+        echo ""
+        echo -e "  ${C_R} 0)${C_0} $(_T m0)    ${C_D}[L]${C_0} Language/语言"
         echo ""
         _line
 
-        read -rp "$(echo -e "${C_W}请选择 [0-15]: ${C_0}")" choice
+        read -rp "$(echo -e "${C_W}$(_T prompt_select) [0-15 / L]: ${C_0}")" choice
         case "$choice" in
             1)  m_syscheck ;;
             2)  m_mirror ;;
@@ -245,8 +410,9 @@ main_menu() {
             13) m_cron ;;
             14) m_export ;;
             15) m_1panel ;;
-            0)  echo -e "${C_G}感谢使用 TinyTool，再见！${C_0}"; exit 0 ;;
-            *)  _warn "无效选择" ;;
+            l|L) _switch_lang ;;
+            0)  echo -e "${C_G}$(_T goodbye)${C_0}"; exit 0 ;;
+            *)  _warn "$(_T invalid_choice)" ;;
         esac
         _pause
     done
@@ -3127,6 +3293,12 @@ _1panel_uninstall() {
 main() {
     check_root
     detect_system
+    # 根据系统语言自动切换
+    if [[ "$LANG" =~ zh_CN || "$LANG" =~ zh_TW || "$LANG" =~ zh- ]]; then
+        LANG_CODE="zh"
+    else
+        LANG_CODE="en"
+    fi
     self_update
     env_repair
     main_menu

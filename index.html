@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TinyTool - 一条命令，开启自动化运维旅程</title>
+    <title data-i18n="page_title">TinyTool - 一条命令，开启自动化运维旅程</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <style>
@@ -63,6 +63,13 @@
             transition: all 0.2s;
         }
         .nav-cta:hover { background: var(--primary-dim); transform: translateY(-1px); }
+        .lang-toggle {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text-dim); padding: 4px 12px; border-radius: 6px;
+            font-size: 0.8rem; cursor: pointer; margin-right: 12px;
+            transition: all 0.2s;
+        }
+        .lang-toggle:hover { color: var(--text); border-color: var(--text-muted); }
 
         /* Hero */
         .hero {
@@ -224,12 +231,15 @@
                 TinyTool
             </div>
             <ul class="nav-links">
-                <li><a href="#features">功能</a></li>
-                <li><a href="#install">安装</a></li>
+                <li><a href="#features" data-i18n="nav_features">功能</a></li>
+                <li><a href="#install" data-i18n="nav_install">安装</a></li>
                 <li><a href="https://github.com/hayoko2006/TinyTool">GitHub</a></li>
-                <li><a href="https://github.com/hayoko2006/TinyTool/blob/main/README.md">文档</a></li>
+                <li><a href="https://github.com/hayoko2006/TinyTool/blob/main/README.md" data-i18n="nav_docs">文档</a></li>
             </ul>
-            <a href="#install" class="nav-cta">立即使用</a>
+            <div style="display:flex;align-items:center;">
+                <button class="lang-toggle" onclick="toggleLang()" id="langBtn">EN</button>
+                <a href="#install" class="nav-cta" data-i18n="nav_cta">立即使用</a>
+            </div>
         </div>
     </nav>
 
@@ -237,12 +247,12 @@
         <div class="container">
             <div class="hero-badge">
                 <span class="dot"></span>
-                v1.0.1 已发布 - 支持 CentOS / Ubuntu / Debian
+                <span data-i18n="badge">v1.0.1 已发布 - 支持 CentOS / Ubuntu / Debian</span>
             </div>
-            <h1>一条命令<br><span>开启自动化运维旅程</span></h1>
-            <p class="hero-subtitle">
+            <h1 data-i18n="hero_title">一条命令<br><span>开启自动化运维旅程</span></h1>
+            <p class="hero-subtitle" data-i18n="hero_sub">
                 TinyTool 是专为 Linux 服务器打造的极简运维工具，
-                14 大功能模块，自动检测系统环境，自带更新与环境修复机制。
+                15 大功能模块，自动检测系统环境，自带更新与环境修复机制。
             </p>
 
             <div class="terminal-wrap" id="install">
@@ -258,106 +268,106 @@
                         <div><span class="prompt">root@server:~#</span> <span class="cmd">wget -qO- https://tinytool.hayoko.cn/tinytool.sh | bash</span></div>
                     </div>
                 </div>
-                <button class="copy-btn" onclick="copyCmd()">复制命令</button>
+                <button class="copy-btn" onclick="copyCmd()" data-i18n="copy_btn">复制命令</button>
             </div>
 
             <div class="stats">
-                <div class="stat-item"><div class="stat-num">15</div><div class="stat-label">功能模块</div></div>
-                <div class="stat-item"><div class="stat-num">3100+</div><div class="stat-label">行代码</div></div>
-                <div class="stat-item"><div class="stat-num">90</div><div class="stat-label">函数</div></div>
-                <div class="stat-item"><div class="stat-num">1</div><div class="stat-label">条命令启动</div></div>
+                <div class="stat-item"><div class="stat-num">15</div><div class="stat-label" data-i18n="stat_modules">功能模块</div></div>
+                <div class="stat-item"><div class="stat-num">3300+</div><div class="stat-label" data-i18n="stat_lines">行代码</div></div>
+                <div class="stat-item"><div class="stat-num">95</div><div class="stat-label" data-i18n="stat_funcs">函数</div></div>
+                <div class="stat-item"><div class="stat-num">1</div><div class="stat-label" data-i18n="stat_cmd">条命令启动</div></div>
             </div>
         </div>
     </section>
 
     <section class="section" id="features">
         <div class="container">
-            <h2 class="section-title">功能模块</h2>
+            <h2 class="section-title" data-i18n="features_title">功能模块</h2>
             <div class="features">
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F50E;</div>
-                    <h3>系统自检</h3>
-                    <p>8 项健康度检测：CPU、内存、磁盘、网络、安全、服务、更新，生成评分报告。</p>
+                    <h3 data-i18n="f1_title">系统自检</h3>
+                    <p data-i18n="f1_desc">8 项健康度检测：CPU、内存、磁盘、网络、安全、服务、更新，生成评分报告。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F504;</div>
-                    <h3>软件源管理</h3>
-                    <p>阿里云/清华/中科大/腾讯/华为 5 大镜像源一键切换，自动备份与恢复。</p>
+                    <h3 data-i18n="f2_title">软件源管理</h3>
+                    <p data-i18n="f2_desc">阿里云/清华/中科大/腾讯/华为 5 大镜像源一键切换，自动备份与恢复。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F4BE;</div>
-                    <h3>存储管理</h3>
-                    <p>数据盘自动挂载(fstab 持久化)、LVM 在线扩容、磁盘占用分析、大文件排查。</p>
+                    <h3 data-i18n="f3_title">存储管理</h3>
+                    <p data-i18n="f3_desc">数据盘自动挂载(fstab 持久化)、LVM 在线扩容、磁盘占用分析、大文件排查。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x2699;&#xFE0F;</div>
-                    <h3>系统管理</h3>
-                    <p>一键系统更新、时区设置+时间同步、Swap 管理、缓存清理、服务管理。</p>
+                    <h3 data-i18n="f4_title">系统管理</h3>
+                    <p data-i18n="f4_desc">一键系统更新、时区设置+时间同步、Swap 管理、缓存清理、服务管理。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F310;</div>
-                    <h3>DNS 管理</h3>
-                    <p>5 种 DNS 切换、解析测试、延迟测速、一键恢复默认配置。</p>
+                    <h3 data-i18n="f5_title">DNS 管理</h3>
+                    <p data-i18n="f5_desc">5 种 DNS 切换、解析测试、延迟测速、一键恢复默认配置。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F6E1;&#xFE0F;</div>
-                    <h3>网络管理</h3>
-                    <p>SSH 端口修改、防火墙管理、网络测速(带宽/热门网站/节点延迟)、邮件服务检测、端口扫描。</p>
+                    <h3 data-i18n="f6_title">网络管理</h3>
+                    <p data-i18n="f6_desc">SSH 端口修改、防火墙管理、网络测速(带宽/热门网站/节点延迟)、邮件服务检测、端口扫描。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F511;</div>
-                    <h3>SSH 管理</h3>
-                    <p>配置查看、一键安全加固、禁止密码登录、密钥管理、fail2ban 防爆破。</p>
+                    <h3 data-i18n="f7_title">SSH 管理</h3>
+                    <p data-i18n="f7_desc">配置查看、一键安全加固、禁止密码登录、密钥管理、fail2ban 防爆破。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F3E0;</div>
-                    <h3>宝塔管理</h3>
-                    <p>一键安装宝塔面板、信息查看、密码重置、数据盘挂载到 /www、卸载。</p>
+                    <h3 data-i18n="f8_title">宝塔管理</h3>
+                    <p data-i18n="f8_desc">一键安装宝塔面板、信息查看、密码重置、数据盘挂载到 /www、卸载。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F50C;</div>
-                    <h3>Caddy 管理</h3>
-                    <p>官方源安装、状态查看、启停控制、Caddyfile 编辑、一键卸载。</p>
+                    <h3 data-i18n="f9_title">Caddy 管理</h3>
+                    <p data-i18n="f9_desc">官方源安装、状态查看、启停控制、Caddyfile 编辑、一键卸载。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F433;</div>
-                    <h3>Docker 管理</h3>
-                    <p>官方脚本安装+镜像加速、数据目录迁移、分层清理、Compose 管理。</p>
+                    <h3 data-i18n="f10_title">Docker 管理</h3>
+                    <p data-i18n="f10_desc">官方脚本安装+镜像加速、数据目录迁移、分层清理、Compose 管理。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F4C8;</div>
-                    <h3>进程监控</h3>
-                    <p>CPU/内存 TOP 20、按名称/端口查找进程、kill 结束进程、进程树查看。</p>
+                    <h3 data-i18n="f11_title">进程监控</h3>
+                    <p data-i18n="f11_desc">CPU/内存 TOP 20、按名称/端口查找进程、kill 结束进程、进程树查看。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F4CB;</div>
-                    <h3>日志工具</h3>
-                    <p>系统日志、认证日志、Web 日志、dmesg、启动日志、关键词搜索、清空。</p>
+                    <h3 data-i18n="f12_title">日志工具</h3>
+                    <p data-i18n="f12_desc">系统日志、认证日志、Web 日志、dmesg、启动日志、关键词搜索、清空。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x23F0;</div>
-                    <h3>定时任务</h3>
-                    <p>查看/新增/删除 crontab 任务、编辑 crontab、服务状态、常用模板。</p>
+                    <h3 data-i18n="f13_title">定时任务</h3>
+                    <p data-i18n="f13_desc">查看/新增/删除 crontab 任务、编辑 crontab、服务状态、常用模板。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F4E4;</div>
-                    <h3>配置导出</h3>
-                    <p>系统配置一键导出（网络/SSH/防火墙/定时任务/磁盘/软件包），打包 tar.gz。</p>
+                    <h3 data-i18n="f14_title">配置导出</h3>
+                    <p data-i18n="f14_desc">系统配置一键导出（网络/SSH/防火墙/定时任务/磁盘/软件包），打包 tar.gz。</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">&#x1F3E0;</div>
-                    <h3>1Panel 管理</h3>
-                    <p>一键安装、面板信息查看、密码重置、端口修改、状态/重启、数据盘迁移、卸载。</p>
+                    <h3 data-i18n="f15_title">1Panel 管理</h3>
+                    <p data-i18n="f15_desc">一键安装、面板信息查看、密码重置、端口修改、状态/重启、数据盘迁移、卸载。</p>
                 </div>
             </div>
 
             <div class="compat-bar">
-                <div class="compat-item ok">&#x2713; CentOS 7+</div>
-                <div class="compat-item ok">&#x2713; RHEL / Rocky / AlmaLinux</div>
-                <div class="compat-item ok">&#x2713; Ubuntu 18.04+</div>
-                <div class="compat-item ok">&#x2713; Debian 9+</div>
-                <div class="compat-item ok">&#x2713; 自动适配系统</div>
-                <div class="compat-item ok">&#x2713; 自动修复环境</div>
+                <div class="compat-item ok">&#x2713; <span data-i18n="compat_centos">CentOS 7+</span></div>
+                <div class="compat-item ok">&#x2713; <span data-i18n="compat_rhel">RHEL / Rocky / AlmaLinux</span></div>
+                <div class="compat-item ok">&#x2713; <span data-i18n="compat_ubuntu">Ubuntu 18.04+</span></div>
+                <div class="compat-item ok">&#x2713; <span data-i18n="compat_debian">Debian 9+</span></div>
+                <div class="compat-item ok">&#x2713; <span data-i18n="compat_auto">自动适配系统</span></div>
+                <div class="compat-item ok">&#x2713; <span data-i18n="compat_repair">自动修复环境</span></div>
             </div>
         </div>
     </section>
@@ -369,14 +379,117 @@
     </footer>
 
     <script>
+        // i18n dictionary
+        const i18n = {
+            zh: {
+                page_title: "TinyTool - 一条命令，开启自动化运维旅程",
+                nav_features: "功能",
+                nav_install: "安装",
+                nav_docs: "文档",
+                nav_cta: "立即使用",
+                badge: "v1.0.1 已发布 - 支持 CentOS / Ubuntu / Debian",
+                hero_title: "一条命令<br><span>开启自动化运维旅程</span>",
+                hero_sub: "TinyTool 是专为 Linux 服务器打造的极简运维工具，15 大功能模块，自动检测系统环境，自带更新与环境修复机制。",
+                copy_btn: "复制命令",
+                stat_modules: "功能模块",
+                stat_lines: "行代码",
+                stat_funcs: "函数",
+                stat_cmd: "条命令启动",
+                features_title: "功能模块",
+                f1_title: "系统自检", f1_desc: "8 项健康度检测：CPU、内存、磁盘、网络、安全、服务、更新，生成评分报告。",
+                f2_title: "软件源管理", f2_desc: "阿里云/清华/中科大/腾讯/华为 5 大镜像源一键切换，自动备份与恢复。",
+                f3_title: "存储管理", f3_desc: "数据盘自动挂载(fstab 持久化)、LVM 在线扩容、磁盘占用分析、大文件排查。",
+                f4_title: "系统管理", f4_desc: "一键系统更新、时区设置+时间同步、Swap 管理、缓存清理、服务管理。",
+                f5_title: "DNS 管理", f5_desc: "5 种 DNS 切换、解析测试、延迟测速、一键恢复默认配置。",
+                f6_title: "网络管理", f6_desc: "SSH 端口修改、防火墙管理、网络测速(带宽/热门网站/节点延迟)、邮件服务检测、端口扫描。",
+                f7_title: "SSH 管理", f7_desc: "配置查看、一键安全加固、禁止密码登录、密钥管理、fail2ban 防爆破。",
+                f8_title: "宝塔管理", f8_desc: "一键安装宝塔面板、信息查看、密码重置、数据盘挂载到 /www、卸载。",
+                f9_title: "Caddy 管理", f9_desc: "官方源安装、状态查看、启停控制、Caddyfile 编辑、一键卸载。",
+                f10_title: "Docker 管理", f10_desc: "官方脚本安装+镜像加速、数据目录迁移、分层清理、Compose 管理。",
+                f11_title: "进程监控", f11_desc: "CPU/内存 TOP 20、按名称/端口查找进程、kill 结束进程、进程树查看。",
+                f12_title: "日志工具", f12_desc: "系统日志、认证日志、Web 日志、dmesg、启动日志、关键词搜索、清空。",
+                f13_title: "定时任务", f13_desc: "查看/新增/删除 crontab 任务、编辑 crontab、服务状态、常用模板。",
+                f14_title: "配置导出", f14_desc: "系统配置一键导出（网络/SSH/防火墙/定时任务/磁盘/软件包），打包 tar.gz。",
+                f15_title: "1Panel 管理", f15_desc: "一键安装、面板信息查看、密码重置、端口修改、状态/重启、数据盘迁移、卸载。",
+                compat_centos: "CentOS 7+",
+                compat_rhel: "RHEL / Rocky / AlmaLinux",
+                compat_ubuntu: "Ubuntu 18.04+",
+                compat_debian: "Debian 9+",
+                compat_auto: "自动适配系统",
+                compat_repair: "自动修复环境",
+            },
+            en: {
+                page_title: "TinyTool - One command, automate your ops journey",
+                nav_features: "Features",
+                nav_install: "Install",
+                nav_docs: "Docs",
+                nav_cta: "Get Started",
+                badge: "v1.0.1 Released - CentOS / Ubuntu / Debian supported",
+                hero_title: "One command to<br><span>automate your ops</span>",
+                hero_sub: "TinyTool is a minimal yet powerful Linux ops tool. 15 feature modules, auto system detection, built-in updates and environment repair.",
+                copy_btn: "Copy Command",
+                stat_modules: "Modules",
+                stat_lines: "Lines of Code",
+                stat_funcs: "Functions",
+                stat_cmd: "One command",
+                features_title: "Feature Modules",
+                f1_title: "System Check", f1_desc: "8 health checks: CPU, memory, disk, network, security, services, updates. Generates a scored report.",
+                f2_title: "Repo Mirror", f2_desc: "Switch between 5 mirrors (Aliyun/Tsinghua/USTC/Tencent/Huawei) with one click. Auto backup & restore.",
+                f3_title: "Storage", f3_desc: "Auto data disk mount (persistent fstab), LVM online expansion, disk usage analysis, large file finder.",
+                f4_title: "System", f4_desc: "One-click system update, timezone & time sync, Swap management, cache cleanup, service control.",
+                f5_title: "DNS", f5_desc: "5 DNS presets, resolution testing, latency benchmarking, one-click restore.",
+                f6_title: "Network", f6_desc: "SSH port change, firewall management, speedtest (bandwidth/sites/latency), mail detection, port scan.",
+                f7_title: "SSH", f7_desc: "Config viewer, one-click hardening, disable password auth, key management, fail2ban brute-force protection.",
+                f8_title: "aaPanel", f8_desc: "One-click install, info viewer, password reset, data disk mount to /www, uninstall.",
+                f9_title: "Caddy", f9_desc: "Official repo install, status check, start/stop control, Caddyfile editor, uninstall.",
+                f10_title: "Docker", f10_desc: "Official installer with mirror acceleration, data dir migration, layered cleanup, Compose management.",
+                f11_title: "Process", f11_desc: "CPU/Memory TOP 20, search by name/port, kill processes, process tree view.",
+                f12_title: "Logs", f12_desc: "System logs, auth logs, web logs, dmesg, boot logs, keyword search, clear logs.",
+                f13_title: "Cron", f13_desc: "View/add/delete crontab tasks, edit crontab, service status, common templates.",
+                f14_title: "Export", f14_desc: "Export all system configs (network/SSH/firewall/cron/disk/packages) as tar.gz archive.",
+                f15_title: "1Panel", f15_desc: "One-click install, info viewer, password reset, port change, status/restart, data disk migration, uninstall.",
+                compat_centos: "CentOS 7+",
+                compat_rhel: "RHEL / Rocky / AlmaLinux",
+                compat_ubuntu: "Ubuntu 18.04+",
+                compat_debian: "Debian 9+",
+                compat_auto: "Auto system detection",
+                compat_repair: "Auto env repair",
+            }
+        };
+
+        let currentLang = localStorage.getItem('tinytool_lang') || (navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en');
+
+        function applyLang(lang) {
+            currentLang = lang;
+            localStorage.setItem('tinytool_lang', lang);
+            document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[lang][key]) {
+                    el.innerHTML = i18n[lang][key];
+                }
+            });
+
+            document.title = i18n[lang].page_title;
+            document.getElementById('langBtn').textContent = lang === 'zh' ? 'EN' : '中';
+        }
+
+        function toggleLang() {
+            applyLang(currentLang === 'zh' ? 'en' : 'zh');
+        }
+
         function copyCmd() {
             const cmd = 'bash <(curl -sL https://tinytool.hayoko.cn/tinytool.sh)';
             navigator.clipboard.writeText(cmd).then(() => {
                 const btn = document.querySelector('.copy-btn');
-                btn.textContent = '已复制';
-                setTimeout(() => btn.textContent = '复制命令', 2000);
+                btn.textContent = currentLang === 'zh' ? '已复制' : 'Copied';
+                setTimeout(() => btn.textContent = i18n[currentLang].copy_btn, 2000);
             });
         }
+
+        // Initialize language on load
+        applyLang(currentLang);
     </script>
 </body>
 </html>

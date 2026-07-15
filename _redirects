@@ -1,0 +1,8 @@
+# TinyTool - EdgeOne Pages Redirects
+# https://developers.cloudflare.com/pages/configuration/redirects/
+
+# 根路径重定向到首页
+/  /index.html  200
+
+# www 子域名重定向到裸域
+https://www.tinytool.hayoko.cn/*  https://tinytool.hayoko.cn/:splat  301

@@ -1,7 +1,7 @@
 # TinyTool
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-beta--1-blue" alt="version">
+  <img src="https://img.shields.io/badge/version-2.0.1--1-blue" alt="version">
   <img src="https://img.shields.io/badge/shell-bash-green" alt="shell">
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="license">
   <img src="https://img.shields.io/badge/platform-Linux-red" alt="platform">
@@ -18,7 +18,7 @@
 
 ## 简介
 
-TinyTool 是一个极简、高效、自动化的 Linux 运维工具。只需一条命令即可部署到任意 Linux 服务器，自动检测系统环境（CentOS / Ubuntu / Debian），提供 15 大功能模块的交互式运维界面。
+TinyTool 是一个极简、高效、自动化的 Linux 运维工具。只需一条命令即可部署到任意 Linux 服务器，自动检测系统环境（CentOS / Ubuntu / Debian），提供 **24 大功能模块**的交互式运维界面。
 
 ## 快速开始
 
@@ -47,11 +47,20 @@ bash <(curl -sL https://raw.githubusercontent.com/hayoko2006/TinyTool/main/tinyt
 | 8 | 宝塔管理 | 一键安装、面板信息查看、密码重置、数据盘挂载到 /www、卸载 |
 | 9 | Caddy 管理 | 官方源安装、状态查看、启停控制、Caddyfile 编辑、卸载 |
 | 10 | Docker 管理 | 官方脚本安装+国内镜像加速、数据目录迁移、分层清理、Compose 管理 |
-| 11 | 进程监控 | CPU/内存 TOP 20、按名称/端口查找进程、kill/kill -9 结束进程、进程树 |
-| 12 | 日志工具 | 系统日志、认证日志、Nginx/Apache 日志、dmesg、启动日志、关键词搜索、日志清空 |
-| 13 | 定时任务 | 查看/新增/删除 crontab 任务、编辑 crontab、服务状态、常用模板 |
-| 14 | 配置导出 | 系统配置一键导出（网络/SSH/防火墙/定时任务/磁盘/软件包/服务列表），打包为 tar.gz |
-| 15 | 1Panel 管理 | 一键安装、面板信息查看、密码重置、端口修改、状态/重启、数据盘迁移、卸载 |
+| 11 | 1Panel 管理 | 一键安装、面板信息查看、密码重置、端口修改、状态/重启、数据盘迁移、卸载 |
+| 12 | 网站管理 | 站点状态检测(HTTP/SSL)、Nginx/Caddy 配置查看、Let's Encrypt 证书申请/续期/检测 |
+| 13 | 数据库管理 | MySQL/MariaDB 状态/性能/备份、Redis 状态/命中率/一键备份 |
+| 14 | 备份管理 | 目录一键打包(tar.gz)、远程服务器传输(rsync/scp)、定时备份任务、备份清理策略 |
+| 15 | 安全扫描 | 系统安全基线检查(空密码/SUID/可写目录)、WebShell 恶意脚本检测、登录审计、IP 封禁、端口风险 |
+| 16 | 用户权限 | 系统用户查看/添加/删除/改密、sudo 权限管理、文件权限批量修复 |
+| 17 | 磁盘IO测试 | iotop/iostat 实时监控、fio 顺序/随机读写性能测试、SMART 健康检测 |
+| 18 | 进程监控 | CPU/内存 TOP 20、按名称/端口查找进程、kill/kill -9 结束进程、进程树 |
+| 19 | 日志工具 | 系统日志、认证日志、Nginx/Apache 日志、dmesg、启动日志、关键词搜索、日志清空 |
+| 20 | 定时任务 | 查看/新增/删除 crontab 任务、编辑 crontab、服务状态、常用模板 |
+| 21 | 配置导出 | 系统配置一键导出（网络/SSH/防火墙/定时任务/磁盘/软件包/服务列表），打包为 tar.gz |
+| 22 | 邮件告警 | msmtp/mailx 邮件配置、测试邮件发送、磁盘/内存阈值告警自动邮件通知 |
+| 23 | 内网穿透 | frp 客户端安装配置(systemd)、nps 服务端一键安装、运行状态查看 |
+| 24 | LNMP/LAMP | Nginx/Apache + MySQL/MariaDB + PHP 一键安装、组件状态查看、虚拟主机添加/删除 |
 
 ## 系统要求
 
@@ -70,7 +79,7 @@ bash <(curl -sL https://raw.githubusercontent.com/hayoko2006/TinyTool/main/tinyt
 
 ```
 TinyTool/
-├── tinytool.sh    # 主脚本（约 3100 行，15 个功能模块）
+├── tinytool.sh    # 主脚本（约 4900 行，24 个功能模块）
 ├── README.md      # 项目说明
 ├── index.html     # 官网页面
 ├── _headers       # EdgeOne Pages Headers 配置

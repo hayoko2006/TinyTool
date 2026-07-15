@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # ============================================================================
 #  TinyTool - 一条命令，开启自动化运维旅程
 #  Author : Hayoko
@@ -7,7 +7,7 @@
 #           自动适配 CentOS / Ubuntu / Debian
 # ============================================================================
 
-readonly VERSION="beta-1"
+readonly VERSION="2.0.1-1"
 readonly SCRIPT_URL="https://tinytool.hayoko.cn/tinytool.sh"
 readonly GITHUB_RAW="https://raw.githubusercontent.com/hayoko2006/TinyTool/main/tinytool.sh"
 
@@ -226,17 +226,30 @@ main_menu() {
         echo -e "  ${C_G}10)${C_0} Docker 管理           安装、迁移、清理"
         echo -e "  ${C_G}11)${C_0} 1Panel 管理           安装、信息、密码、卸载"
         echo ""
+        echo -e "  ${C_D}─── 网站 & 数据库 ────────────────────────────${C_0}"
+        echo -e "  ${C_G}12)${C_0} 网站管理              站点检测、SSL、虚拟主机"
+        echo -e "  ${C_G}13)${C_0} 数据库管理            MySQL/MariaDB/Redis"
+        echo ""
+        echo -e "  ${C_D}─── 运维 & 安全 ──────────────────────────────${C_0}"
+        echo -e "  ${C_G}14)${C_0} 备份管理              打包、远程传输、定时"
+        echo -e "  ${C_G}15)${C_0} 安全扫描              基线检查、恶意脚本"
+        echo -e "  ${C_G}16)${C_0} 用户权限              用户管理、sudo、权限修复"
+        echo -e "  ${C_G}17)${C_0} 磁盘IO测试            性能测试、健康检测"
+        echo ""
         echo -e "  ${C_D}─── 实用工具 ─────────────────────────────────${C_0}"
-        echo -e "  ${C_G}12)${C_0} 进程监控              实时进程查看与管理"
-        echo -e "  ${C_G}13)${C_0} 日志工具              系统日志快速查看"
-        echo -e "  ${C_G}14)${C_0} 定时任务              Crontab 管理"
-        echo -e "  ${C_G}15)${C_0} 配置导出              系统配置一键导出"
+        echo -e "  ${C_G}18)${C_0} 进程监控              实时进程查看与管理"
+        echo -e "  ${C_G}19)${C_0} 日志工具              系统日志快速查看"
+        echo -e "  ${C_G}20)${C_0} 定时任务              Crontab 管理"
+        echo -e "  ${C_G}21)${C_0} 配置导出              系统配置一键导出"
+        echo -e "  ${C_G}22)${C_0} 邮件告警              邮件配置与系统告警"
+        echo -e "  ${C_G}23)${C_0} 内网穿透              frp/nps 安装配置"
+        echo -e "  ${C_G}24)${C_0} LNMP/LAMP             一键安装与环境管理"
         echo ""
         echo -e "  ${C_R} 0)${C_0} 退出程序"
         echo ""
         _line
 
-        read -rp "$(echo -e "${C_W}请选择 [0-15]: ${C_0}")" choice
+        read -rp "$(echo -e "${C_W}请选择 [0-24]: ${C_0}")" choice
         case "$choice" in
             1)  m_syscheck ;;
             2)  m_mirror ;;
@@ -249,10 +262,19 @@ main_menu() {
             9)  m_caddy ;;
             10) m_docker ;;
             11) m_1panel ;;
-            12) m_process ;;
-            13) m_logs ;;
-            14) m_cron ;;
-            15) m_export ;;
+            12) m_web ;;
+            13) m_db ;;
+            14) m_backup ;;
+            15) m_security ;;
+            16) m_user ;;
+            17) m_io ;;
+            18) m_process ;;
+            19) m_logs ;;
+            20) m_cron ;;
+            21) m_export ;;
+            22) m_mail ;;
+            23) m_nat ;;
+            24) m_lnmp ;;
             0)  echo -e "${C_G}感谢使用 TinyTool，再见！${C_0}"; exit 0 ;;
             *)  _warn "无效选择" ;;
         esac
@@ -3143,6 +3165,1757 @@ _1panel_uninstall() {
     _confirm "确认卸载 1Panel？" || return
     1pctl uninstall
     _ok "1Panel 已卸载"
+}
+
+
+# ============================ 模块: 网站管理 =============================
+m_web() {
+    _title "网站管理 - 站点检测、Web服务器、SSL证书"
+    while true; do
+        echo -e "  ${C_G}1)${C_0} 站点状态检测"
+        echo -e "  ${C_G}2)${C_0} Nginx 配置查看"
+        echo -e "  ${C_G}3)${C_0} Caddy 配置查看"
+        echo -e "  ${C_G}4)${C_0} SSL 证书检测"
+        echo -e "  ${C_G}5)${C_0} Let's Encrypt 一键申请"
+        echo -e "  ${C_G}6)${C_0} SSL 证书续期"
+        echo -e "  ${C_G}0)${C_0} 返回主菜单"
+        echo ""
+        read -rp "$(echo -e "${C_W}选择 [0-6]: ${C_0}")" choice
+        case "$choice" in
+            1) _web_status ;; 2) _web_nginx ;;
+            3) _web_caddy ;; 4) _web_ssl_check ;;
+            5) _web_ssl_apply ;; 6) _web_ssl_renew ;;
+            0) break ;; *) _warn "无效选择" ;;
+        esac
+        [[ "$choice" != "0" ]] && _pause
+    done
+}
+
+_web_status() {
+    read -rp "$(echo -e "${C_W}输入域名 (回车检测 localhost): ${C_0}")" domain
+    [[ -z "$domain" ]] && domain="localhost"
+
+    local url="http://${domain}"
+    _info "检测站点: $url"
+    _line
+
+    if ! _has curl; then
+        _warn "curl 未安装，尝试安装..."
+        _pkg_install curl || { _err "curl 安装失败"; return; }
+    fi
+
+    local http_code redirect_url resp_time
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -L --connect-timeout 10 "$url" 2>/dev/null)
+    redirect_url=$(curl -s -o /dev/null -w "%{url_effective}" -L --connect-timeout 10 "$url" 2>/dev/null)
+    resp_time=$(curl -s -o /dev/null -w "%{time_total}" -L --connect-timeout 10 "$url" 2>/dev/null)
+
+    echo -e "  HTTP 状态码: ${C_W}${http_code:-未知}${C_0}"
+    echo -e "  最终 URL:    ${C_W}${redirect_url}${C_0}"
+    echo -e "  响应时间:    ${C_W}${resp_time:-未知} 秒${C_0}"
+
+    # SSL 过期检测
+    if [[ "$redirect_url" == https* ]]; then
+        _line
+        _info "SSL 证书信息"
+        local ssl_info
+        ssl_info=$(echo | timeout 5 openssl s_client -connect "${domain}:443" -servername "$domain" 2>/dev/null | openssl x509 -noout -dates -subject 2>/dev/null)
+        if [[ -n "$ssl_info" ]]; then
+            local not_after
+            not_after=$(echo "$ssl_info" | grep notAfter | cut -d= -f2)
+            echo -e "  过期时间: ${C_W}${not_after}${C_0}"
+            if [[ -n "$not_after" ]]; then
+                local exp_ts now_ts days_left
+                exp_ts=$(date -d "$not_after" +%s 2>/dev/null || date -j -f "%b %d %H:%M:%S %Y %Z" "$not_after" +%s 2>/dev/null)
+                now_ts=$(date +%s)
+                if [[ -n "$exp_ts" ]]; then
+                    days_left=$(( (exp_ts - now_ts) / 86400 ))
+                    if [[ $days_left -lt 7 ]]; then
+                        _err "SSL 证书将在 ${days_left} 天后过期！"
+                    elif [[ $days_left -lt 30 ]]; then
+                        _warn "SSL 证书将在 ${days_left} 天后过期"
+                    else
+                        _ok "SSL 证书还有 ${days_left} 天过期"
+                    fi
+                fi
+            fi
+        else
+            _warn "无法获取 SSL 证书信息"
+        fi
+    fi
+}
+
+_web_nginx() {
+    if ! _has nginx; then
+        _err "Nginx 未安装"
+        return
+    fi
+    _info "Nginx 版本"
+    nginx -v 2>&1
+    echo ""
+    _info "Nginx 运行状态"
+    systemctl status nginx --no-pager 2>/dev/null | head -10 || service nginx status 2>/dev/null | head -10
+    echo ""
+    _info "Nginx 配置"
+    _line
+    if [[ -d /etc/nginx/sites-enabled ]]; then
+        for f in /etc/nginx/sites-enabled/*; do
+            [[ -f "$f" ]] || continue
+            echo -e "${C_C}--- $(basename "$f") ---${C_0}"
+            cat "$f"
+            echo ""
+        done
+    elif [[ -d /etc/nginx/conf.d ]]; then
+        for f in /etc/nginx/conf.d/*.conf; do
+            [[ -f "$f" ]] || continue
+            echo -e "${C_C}--- $(basename "$f") ---${C_0}"
+            cat "$f"
+            echo ""
+        done
+    elif [[ -f /etc/nginx/nginx.conf ]]; then
+        echo -e "${C_C}--- /etc/nginx/nginx.conf ---${C_0}"
+        cat /etc/nginx/nginx.conf
+    else
+        _warn "未找到 Nginx 配置文件"
+    fi
+}
+
+_web_caddy() {
+    local caddyfile="/etc/caddy/Caddyfile"
+    if [[ ! -f "$caddyfile" ]]; then
+        _err "Caddyfile 不存在: $caddyfile"
+        return
+    fi
+    _info "Caddy 配置"
+    _line
+    cat "$caddyfile"
+    echo ""
+    if _has caddy; then
+        _info "配置验证"
+        caddy validate --config "$caddyfile" 2>/dev/null && _ok "配置有效" || _warn "配置可能有问题"
+    fi
+}
+
+_web_ssl_check() {
+    local le_dir="/etc/letsencrypt/live"
+    if [[ ! -d "$le_dir" ]]; then
+        _err "Let's Encrypt 证书目录不存在: $le_dir"
+        return
+    fi
+    _info "SSL 证书列表"
+    _line
+    local found=0
+    for d in "$le_dir"/*; do
+        [[ -d "$d" ]] || continue
+        local cert="$d/fullchain.pem"
+        [[ -f "$cert" ]] || continue
+        local domain
+        domain=$(basename "$d")
+        local not_after
+        not_after=$(openssl x509 -in "$cert" -noout -enddate 2>/dev/null | cut -d= -f2)
+        local days_left=""
+        if [[ -n "$not_after" ]]; then
+            local exp_ts now_ts
+            exp_ts=$(date -d "$not_after" +%s 2>/dev/null || date -j -f "%b %d %H:%M:%S %Y %Z" "$not_after" +%s 2>/dev/null)
+            now_ts=$(date +%s)
+            [[ -n "$exp_ts" ]] && days_left=$(( (exp_ts - now_ts) / 86400 ))
+        fi
+        found=1
+        if [[ -n "$days_left" && "$days_left" -lt 7 ]]; then
+            echo -e "  ${C_R}${domain}${C_0} - 过期时间: ${not_after} (${days_left} 天后过期)"
+        elif [[ -n "$days_left" && "$days_left" -lt 30 ]]; then
+            echo -e "  ${C_Y}${domain}${C_0} - 过期时间: ${not_after} (${days_left} 天后过期)"
+        else
+            echo -e "  ${C_G}${domain}${C_0} - 过期时间: ${not_after:-未知} (${days_left:-未知} 天后过期)"
+        fi
+    done
+    [[ "$found" -eq 0 ]] && _warn "未找到 Let's Encrypt 证书"
+}
+
+_web_ssl_apply() {
+    check_root
+    read -rp "$(echo -e "${C_W}输入域名 (多个用空格分隔): ${C_0}")" domains
+    [[ -z "$domains" ]] && { _err "域名不能为空"; return; }
+
+    # 检测并安装 certbot
+    if ! _has certbot; then
+        _info "正在安装 certbot..."
+        if [[ "$PM" == "apt" ]]; then
+            _pkg_install certbot python3-certbot-nginx python3-certbot-apache 2>/dev/null || _pkg_install certbot
+        else
+            _pkg_install certbot
+        fi
+        if ! _has certbot; then
+            _info "尝试通过 snap 安装 certbot..."
+            if _has snap; then
+                snap install certbot --classic 2>/dev/null && ln -sf /snap/bin/certbot /usr/bin/certbot 2>/dev/null
+            fi
+        fi
+    fi
+    if ! _has certbot; then
+        _err "certbot 安装失败"
+        return
+    fi
+
+    _info "申请 Let's Encrypt 证书..."
+    local webroot_arg=""
+    if [[ -d /var/www/html ]]; then
+        webroot_arg="--webroot -w /var/www/html"
+    elif [[ -d /usr/share/nginx/html ]]; then
+        webroot_arg="--webroot -w /usr/share/nginx/html"
+    fi
+
+    certbot certonly --standalone -d "$domains" --agree-tos --no-eff-email -m "admin@${domains%% *}" --non-interactive 2>/dev/null || \
+    certbot certonly $webroot_arg -d "$domains" --agree-tos --no-eff-email -m "admin@${domains%% *}" --non-interactive 2>/dev/null || \
+    certbot --nginx -d "$domains" --agree-tos --no-eff-email --non-interactive 2>/dev/null || \
+    certbot --apache -d "$domains" --agree-tos --no-eff-email --non-interactive 2>/dev/null
+
+    if [[ $? -eq 0 ]]; then
+        _ok "证书申请成功"
+        _web_ssl_check
+    else
+        _err "证书申请失败，请确保域名已解析到本机且 80 端口可访问"
+    fi
+}
+
+_web_ssl_renew() {
+    check_root
+    if ! _has certbot; then
+        _err "certbot 未安装"
+        return
+    fi
+    _info "测试 SSL 证书续期..."
+    certbot renew --dry-run
+    if [[ $? -eq 0 ]]; then
+        _ok "续期测试通过"
+        _confirm "是否立即执行真实续期？" && certbot renew && _ok "续期完成" || _info "已跳过真实续期"
+    else
+        _err "续期测试失败，请检查配置"
+    fi
+}
+
+# ============================ 模块: 数据库管理 =============================
+m_db() {
+    _title "数据库管理 - MySQL/MariaDB、Redis"
+    while true; do
+        echo -e "  ${C_G}1)${C_0} MySQL/MariaDB 状态"
+        echo -e "  ${C_G}2)${C_0} MySQL 性能查看"
+        echo -e "  ${C_G}3)${C_0} MySQL 一键备份"
+        echo -e "  ${C_G}4)${C_0} Redis 状态查看"
+        echo -e "  ${C_G}5)${C_0} Redis 一键备份"
+        echo -e "  ${C_G}0)${C_0} 返回主菜单"
+        echo ""
+        read -rp "$(echo -e "${C_W}选择 [0-5]: ${C_0}")" choice
+        case "$choice" in
+            1) _db_mysql_status ;; 2) _db_mysql_perf ;;
+            3) _db_mysql_backup ;; 4) _db_redis_status ;;
+            5) _db_redis_backup ;;
+            0) break ;; *) _warn "无效选择" ;;
+        esac
+        [[ "$choice" != "0" ]] && _pause
+    done
+}
+
+_db_mysql_status() {
+    local svc=""
+    if systemctl is-active mariadb &>/dev/null; then
+        svc="mariadb"
+    elif systemctl is-active mysql &>/dev/null; then
+        svc="mysql"
+    elif service mariadb status &>/dev/null 2>&1; then
+        svc="mariadb"
+    elif service mysql status &>/dev/null 2>&1; then
+        svc="mysql"
+    fi
+
+    if [[ -z "$svc" ]]; then
+        _err "MySQL/MariaDB 未运行或未安装"
+        return
+    fi
+
+    _info "服务状态: ${C_W}${svc}${C_0}"
+    systemctl status "$svc" --no-pager 2>/dev/null | head -10 || service "$svc" status 2>/dev/null | head -10
+    echo ""
+
+    if _has mysql; then
+        _info "版本信息"
+        mysql -V 2>/dev/null || mariadb -V 2>/dev/null
+        echo ""
+
+        local creds="-u root"
+        # 尝试无密码连接
+        if ! mysql $creds -e "SELECT 1" &>/dev/null; then
+            read -rsp "$(echo -e "${C_W}输入 MySQL root 密码 (回车尝试无密码): ${C_0}")" mpwd
+            echo ""
+            [[ -n "$mpwd" ]] && creds="-u root -p'$mpwd'"
+        fi
+
+        _info "连接数信息"
+        _line
+        mysql $creds -e "SHOW STATUS LIKE 'Threads_connected'; SHOW STATUS LIKE 'Max_used_connections'; SHOW STATUS LIKE 'Uptime';" 2>/dev/null || _warn "无法连接 MySQL"
+    fi
+}
+
+_db_mysql_perf() {
+    local creds="-u root"
+    if ! mysql $creds -e "SELECT 1" &>/dev/null; then
+        read -rsp "$(echo -e "${C_W}输入 MySQL root 密码 (回车尝试无密码): ${C_0}")" mpwd
+        echo ""
+        [[ -n "$mpwd" ]] && creds="-u root -p'$mpwd'"
+    fi
+
+    _info "当前进程列表"
+    _line
+    mysql $creds -e "SHOW PROCESSLIST;" 2>/dev/null || { _err "无法连接 MySQL"; return; }
+    echo ""
+
+    _info "关键变量"
+    _line
+    mysql $creds -e "SHOW VARIABLES LIKE 'max_connections'; SHOW VARIABLES LIKE 'wait_timeout'; SHOW VARIABLES LIKE 'interactive_timeout';" 2>/dev/null
+    echo ""
+
+    _info "InnoDB 状态"
+    _line
+    mysql $creds -e "SHOW ENGINE INNODB STATUS\G" 2>/dev/null | head -40 || _warn "无法获取 InnoDB 状态"
+}
+
+_db_mysql_backup() {
+    check_root
+    local creds="-u root"
+    if ! mysql $creds -e "SELECT 1" &>/dev/null; then
+        read -rsp "$(echo -e "${C_W}输入 MySQL root 密码 (回车尝试无密码): ${C_0}")" mpwd
+        echo ""
+        [[ -n "$mpwd" ]] && creds="-u root -p'$mpwd'"
+    fi
+
+    _info "可用数据库"
+    _line
+    local dbs
+    dbs=$(mysql $creds -e "SHOW DATABASES;" 2>/dev/null | grep -v "Database\|information_schema\|performance_schema\|sys\|mysql")
+    echo "$dbs"
+    echo ""
+    read -rp "$(echo -e "${C_W}输入要备份的数据库名 (输入 * 备份全部): ${C_0}")" dbname
+    [[ -z "$dbname" ]] && { _err "数据库名不能为空"; return; }
+
+    local backup_dir="/backup/mysql"
+    mkdir -p "$backup_dir"
+    local date_str
+    date_str=$(date +%Y%m%d_%H%M%S)
+
+    if [[ "$dbname" == "*" ]]; then
+        local filename="all_databases_${date_str}.sql"
+        _info "正在备份所有数据库..."
+        mysqldump $creds --all-databases --single-transaction --quick > "${backup_dir}/${filename}" 2>/dev/null
+    else
+        local filename="${dbname}_${date_str}.sql"
+        _info "正在备份数据库: ${dbname}..."
+        mysqldump $creds "$dbname" --single-transaction --quick > "${backup_dir}/${filename}" 2>/dev/null
+    fi
+
+    if [[ $? -eq 0 && -f "${backup_dir}/${filename}" ]]; then
+        _ok "备份完成: ${backup_dir}/${filename}"
+        _info "压缩备份文件中..."
+        gzip -f "${backup_dir}/${filename}"
+        local final_size
+        final_size=$(du -h "${backup_dir}/${filename}.gz" 2>/dev/null | cut -f1)
+        _ok "压缩完成: ${backup_dir}/${filename}.gz (${final_size})"
+    else
+        _err "备份失败"
+    fi
+}
+
+_db_redis_status() {
+    if ! _has redis-cli; then
+        _err "Redis 未安装"
+        return
+    fi
+    _info "Redis 运行状态"
+    systemctl status redis --no-pager 2>/dev/null | head -8 || systemctl status redis-server --no-pager 2>/dev/null | head -8 || _warn "无法获取服务状态"
+    echo ""
+
+    _info "Redis 关键指标"
+    _line
+    redis-cli info 2>/dev/null | grep -E "^# Server|^redis_version|^connected_clients|^used_memory_human|^used_memory_peak_human|^total_system_memory_human|^keyspace_hits|^keyspace_misses|^instantaneous_ops_per_sec|^rdb_last_bgsave_status" || _err "无法连接 Redis"
+    echo ""
+
+    local hits misses ratio
+    hits=$(redis-cli info stats 2>/dev/null | grep keyspace_hits | cut -d: -f2 | tr -d '\r')
+    misses=$(redis-cli info stats 2>/dev/null | grep keyspace_misses | cut -d: -f2 | tr -d '\r')
+    if [[ -n "$hits" && -n "$misses" && $((hits + misses)) -gt 0 ]]; then
+        ratio=$(echo "scale=2; $hits * 100 / ($hits + $misses)" | bc 2>/dev/null || echo "N/A")
+        echo -e "  命中率: ${C_W}${ratio}%${C_0}"
+    fi
+}
+
+_db_redis_backup() {
+    check_root
+    if ! _has redis-cli; then
+        _err "Redis 未安装"
+        return
+    fi
+
+    local backup_dir="/backup/redis"
+    mkdir -p "$backup_dir"
+    local date_str
+    date_str=$(date +%Y%m%d_%H%M%S)
+
+    _info "执行 BGSAVE..."
+    redis-cli BGSAVE 2>/dev/null
+    if [[ $? -ne 0 ]]; then
+        _warn "BGSAVE 失败，尝试 SAVE..."
+        redis-cli SAVE 2>/dev/null || { _err "Redis 备份失败"; return; }
+    fi
+
+    # 等待 rdb 文件生成
+    sleep 2
+
+    local rdb_path
+    rdb_path=$(redis-cli CONFIG GET dir 2>/dev/null | tail -1 | tr -d '\r')
+    local rdb_file
+    rdb_file=$(redis-cli CONFIG GET dbfilename 2>/dev/null | tail -1 | tr -d '\r')
+    [[ -z "$rdb_path" ]] && rdb_path="/var/lib/redis"
+    [[ -z "$rdb_file" ]] && rdb_file="dump.rdb"
+
+    local src="${rdb_path}/${rdb_file}"
+    if [[ ! -f "$src" ]]; then
+        src="/var/lib/redis/dump.rdb"
+    fi
+    if [[ ! -f "$src" ]]; then
+        _err "未找到 Redis RDB 文件"
+        return
+    fi
+
+    cp "$src" "${backup_dir}/dump_${date_str}.rdb"
+    if [[ $? -eq 0 ]]; then
+        _ok "Redis 备份完成: ${backup_dir}/dump_${date_str}.rdb"
+        local size
+        size=$(du -h "${backup_dir}/dump_${date_str}.rdb" 2>/dev/null | cut -f1)
+        _info "备份大小: ${size}"
+    else
+        _err "备份复制失败"
+    fi
+}
+
+# ============================ 模块: 备份管理 =============================
+m_backup() {
+    _title "备份管理 - 打包、远程传输、定时任务"
+    while true; do
+        echo -e "  ${C_G}1)${C_0} 目录一键打包"
+        echo -e "  ${C_G}2)${C_0} 备份到远程服务器"
+        echo -e "  ${C_G}3)${C_0} 备份定时任务"
+        echo -e "  ${C_G}4)${C_0} 查看备份记录"
+        echo -e "  ${C_G}5)${C_0} 清理旧备份"
+        echo -e "  ${C_G}0)${C_0} 返回主菜单"
+        echo ""
+        read -rp "$(echo -e "${C_W}选择 [0-5]: ${C_0}")" choice
+        case "$choice" in
+            1) _backup_pack ;; 2) _backup_remote ;;
+            3) _backup_cron ;; 4) _backup_list ;;
+            5) _backup_clean ;;
+            0) break ;; *) _warn "无效选择" ;;
+        esac
+        [[ "$choice" != "0" ]] && _pause
+    done
+}
+
+_backup_pack() {
+    check_root
+    read -rp "$(echo -e "${C_W}输入要打包的目录: ${C_0}")" src_dir
+    [[ -z "$src_dir" || ! -d "$src_dir" ]] && { _err "目录不存在"; return; }
+
+    local backup_dir="/backup/archive"
+    mkdir -p "$backup_dir"
+    local date_str name
+    date_str=$(date +%Y%m%d_%H%M%S)
+    name=$(basename "$src_dir")
+    local out="${backup_dir}/${name}_${date_str}.tar.gz"
+
+    read -rp "$(echo -e "${C_W}排除模式 (如 '*.log cache/'，回车无排除): ${C_0}")" exclude
+
+    _info "开始打包 ${src_dir} ..."
+    if [[ -n "$exclude" ]]; then
+        tar -czf "$out" --exclude="${exclude}" -C "$(dirname "$src_dir")" "$name" 2>/dev/null
+    else
+        tar -czf "$out" -C "$(dirname "$src_dir")" "$name" 2>/dev/null
+    fi
+
+    if [[ $? -eq 0 && -f "$out" ]]; then
+        local size
+        size=$(du -h "$out" 2>/dev/null | cut -f1)
+        _ok "打包完成: $out (${size})"
+    else
+        _err "打包失败"
+    fi
+}
+
+_backup_remote() {
+    check_root
+    local backup_dir="/backup"
+    _info "本地备份文件"
+    _line
+    find "$backup_dir" -maxdepth 2 -type f \( -name "*.tar.gz" -o -name "*.sql.gz" -o -name "*.rdb" \) -exec ls -lh {} \; 2>/dev/null || _warn "未找到备份文件"
+    echo ""
+
+    read -rp "$(echo -e "${C_W}选择要上传的备份文件完整路径: ${C_0}")" file
+    [[ ! -f "$file" ]] && { _err "文件不存在"; return; }
+
+    read -rp "$(echo -e "${C_W}远程服务器 [user@host]: ${C_0}")" remote
+    [[ -z "$remote" ]] && { _err "远程服务器不能为空"; return; }
+    read -rp "$(echo -e "${C_W}远程目标路径 (默认 /backup): ${C_0}")" rpath
+    [[ -z "$rpath" ]] && rpath="/backup"
+    read -rp "$(echo -e "${C_W}SSH 端口 (默认 22): ${C_0}")" rport
+    [[ -z "$rport" ]] && rport="22"
+
+    if _has rsync; then
+        _info "使用 rsync 上传..."
+        rsync -avz -e "ssh -p ${rport}" "$file" "${remote}:${rpath}/"
+    elif _has scp; then
+        _info "使用 scp 上传..."
+        scp -P "${rport}" "$file" "${remote}:${rpath}/"
+    else
+        _warn "未找到 rsync 或 scp，尝试安装 rsync..."
+        _pkg_install rsync && rsync -avz -e "ssh -p ${rport}" "$file" "${remote}:${rpath}/" || { _err "上传失败"; return; }
+    fi
+
+    if [[ $? -eq 0 ]]; then
+        _ok "上传成功: ${remote}:${rpath}/$(basename "$file")"
+    else
+        _err "上传失败"
+    fi
+}
+
+_backup_cron() {
+    check_root
+    _info "当前备份相关定时任务"
+    _line
+    crontab -l 2>/dev/null | grep -i backup || _warn "暂无备份定时任务"
+    echo ""
+
+    echo -e "  ${C_G}1)${C_0} 添加目录定时打包"
+    echo -e "  ${C_G}2)${C_0} 添加 MySQL 定时备份"
+    echo -e "  ${C_G}3)${C_0} 删除备份定时任务"
+    read -rp "$(echo -e "${C_W}选择 [1-3]: ${C_0}")" cchoice
+
+    case "$cchoice" in
+        1)
+            read -rp "$(echo -e "${C_W}要打包的目录: ${C_0}")" cdir
+            [[ ! -d "$cdir" ]] && { _err "目录不存在"; return; }
+            read -rp "$(echo -e "${C_W}Cron 表达式 (如 '0 3 * * *' 表示每天3点): ${C_0}")" cronexp
+            [[ -z "$cronexp" ]] && { _err "表达式不能为空"; return; }
+            local name
+            name=$(basename "$cdir")
+            (crontab -l 2>/dev/null; echo "${cronexp} tar -czf /backup/archive/${name}_\$(date +\\%Y\\%m\\%d_\\%H\\%M\\%S).tar.gz ${cdir}") | crontab -
+            _ok "定时任务已添加"
+            ;;
+        2)
+            read -rp "$(echo -e "${C_W}数据库名 (* 表示全部): ${C_0}")" cdb
+            [[ -z "$cdb" ]] && cdb="*"
+            read -rp "$(echo -e "${C_W}Cron 表达式 (如 '0 3 * * *'): ${C_0}")" cronexp
+            [[ -z "$cronexp" ]] && { _err "表达式不能为空"; return; }
+            read -rsp "$(echo -e "${C_W}MySQL root 密码 (回车无密码): ${C_0}")" cpwd
+            echo ""
+            local creds=""
+            [[ -n "$cpwd" ]] && creds="-p'${cpwd}'"
+            if [[ "$cdb" == "*" ]]; then
+                (crontab -l 2>/dev/null; echo "${cronexp} mysqldump -u root ${creds} --all-databases --single-transaction --quick | gzip > /backup/mysql/all_\$(date +\\%Y\\%m\\%d_\\%H\\%M\\%S).sql.gz") | crontab -
+            else
+                (crontab -l 2>/dev/null; echo "${cronexp} mysqldump -u root ${creds} ${cdb} --single-transaction --quick | gzip > /backup/mysql/${cdb}_\$(date +\\%Y\\%m\\%d_\\%H\\%M\\%S).sql.gz") | crontab -
+            fi
+            _ok "定时任务已添加"
+            ;;
+        3)
+            read -rp "$(echo -e "${C_W}输入要删除任务的关键词: ${C_0}")" kw
+            [[ -z "$kw" ]] && return
+            crontab -l 2>/dev/null | grep -v "$kw" | crontab -
+            _ok "相关定时任务已删除"
+            ;;
+    esac
+}
+
+_backup_list() {
+    local backup_dir="/backup"
+    if [[ ! -d "$backup_dir" ]]; then
+        _err "备份目录不存在: $backup_dir"
+        return
+    fi
+    _info "备份文件列表"
+    _line
+    find "$backup_dir" -maxdepth 3 -type f \( -name "*.tar.gz" -o -name "*.sql" -o -name "*.sql.gz" -o -name "*.rdb" -o -name "*.zip" \) -printf "  %TY-%Tm-%Td %TH:%TM  %10s  %p\n" 2>/dev/null || \
+    find "$backup_dir" -maxdepth 3 -type f \( -name "*.tar.gz" -o -name "*.sql" -o -name "*.sql.gz" -o -name "*.rdb" -o -name "*.zip" \) -exec ls -lh {} \; 2>/dev/null
+    echo ""
+    local total
+    total=$(du -sh "$backup_dir" 2>/dev/null | cut -f1)
+    _info "备份目录总大小: ${total}"
+}
+
+_backup_clean() {
+    check_root
+    read -rp "$(echo -e "${C_W}删除 N 天前的备份 (输入天数 N): ${C_0}")" days
+    if ! [[ "$days" =~ ^[0-9]+$ ]] || [[ "$days" -lt 1 ]]; then
+        _err "请输入有效的正整数天数"
+        return
+    fi
+
+    local backup_dir="/backup"
+    _info "查找 ${days} 天前的备份文件..."
+    local found
+    found=$(find "$backup_dir" -maxdepth 3 -type f -mtime +"$days" 2>/dev/null)
+    if [[ -z "$found" ]]; then
+        _ok "未发现 ${days} 天前的备份文件"
+        return
+    fi
+
+    echo "$found"
+    _confirm "确认删除以上文件？" || return
+    find "$backup_dir" -maxdepth 3 -type f -mtime +"$days" -delete 2>/dev/null
+    _ok "旧备份清理完成"
+}
+
+# ============================ 模块: 安全扫描 =============================
+m_security() {
+    _title "安全扫描 - 系统安全、恶意脚本、登录审计"
+    while true; do
+        echo -e "  ${C_G}1)${C_0} 系统安全扫描"
+        echo -e "  ${C_G}2)${C_0} 恶意脚本检测"
+        echo -e "  ${C_G}3)${C_0} 登录审计"
+        echo -e "  ${C_G}4)${C_0} 一键封禁 IP"
+        echo -e "  ${C_G}5)${C_0} 查看开放端口风险"
+        echo -e "  ${C_G}0)${C_0} 返回主菜单"
+        echo ""
+        read -rp "$(echo -e "${C_W}选择 [0-5]: ${C_0}")" choice
+        case "$choice" in
+            1) _security_scan ;; 2) _security_malware ;;
+            3) _security_login ;; 4) _security_banip ;;
+            5) _security_ports ;;
+            0) break ;; *) _warn "无效选择" ;;
+        esac
+        [[ "$choice" != "0" ]] && _pause
+    done
+}
+
+_security_scan() {
+    check_root
+    _title "系统安全扫描"
+
+    _info "1) 检查空密码用户"
+    _line
+    local empty_pass
+    empty_pass=$(awk -F: '$2 == "" {print $1}' /etc/shadow 2>/dev/null)
+    if [[ -n "$empty_pass" ]]; then
+        _err "发现空密码用户:"
+        echo "$empty_pass"
+    else
+        _ok "未发现空密码用户"
+    fi
+    echo ""
+
+    _info "2) 检查 SUID 文件 (前 20 个)"
+    _line
+    local suid_files
+    suid_files=$(find / -perm -4000 -type f 2>/dev/null | head -20)
+    if [[ -n "$suid_files" ]]; then
+        echo "$suid_files"
+        _warn "发现 SUID 文件，请确认是否合法"
+    else
+        _ok "未发现异常 SUID 文件"
+    fi
+    echo ""
+
+    _info "3) 检查世界可写目录"
+    _line
+    local ww_dirs
+    ww_dirs=$(find / -type d -perm -0002 ! -perm -1000 2>/dev/null | grep -v "proc\|sys\|snap\|cgroup" | head -20)
+    if [[ -n "$ww_dirs" ]]; then
+        echo "$ww_dirs"
+        _warn "发现没有 sticky bit 的世界可写目录"
+    else
+        _ok "未发现风险世界可写目录"
+    fi
+    echo ""
+
+    _info "4) 检查 SSH root 密码登录"
+    _line
+    if grep -qE "^PermitRootLogin\s+(yes|without-password)" /etc/ssh/sshd_config 2>/dev/null; then
+        _err "SSH root 密码登录已开启，建议改为禁止: PermitRootLogin no"
+    elif grep -qE "^PermitRootLogin\s+no" /etc/ssh/sshd_config 2>/dev/null; then
+        _ok "SSH root 密码登录已禁止"
+    else
+        _warn "未明确配置 PermitRootLogin，默认可能允许 root 登录"
+    fi
+    echo ""
+
+    _info "5) 检查密码策略"
+    _line
+    if [[ -f /etc/login.defs ]]; then
+        grep -E "PASS_MAX_DAYS|PASS_MIN_DAYS|PASS_MIN_LEN" /etc/login.defs 2>/dev/null | grep -v "^#" | head -5 || _warn "未配置密码策略"
+    else
+        _warn "未找到 /etc/login.defs"
+    fi
+}
+
+_security_malware() {
+    check_root
+    _info "扫描 webshell 特征文件..."
+    _line
+
+    local scan_dirs="/var/www /home"
+    local patterns="eval\|assert\|base64_decode\|shell_exec\|exec\|system\|passthru\|preg_replace.*e\|file_put_contents\|file_get_contents.*http"
+    local found=0
+
+    for dir in $scan_dirs; do
+        [[ ! -d "$dir" ]] && continue
+        _info "扫描目录: $dir"
+        while IFS= read -r -d '' file; do
+            local base
+            base=$(basename "$file" | tr '[:upper:]' '[:lower:]')
+            # 跳过常见非脚本文件
+            [[ "$base" == *".jpg" || "$base" == *".png" || "$base" == *".gif" || "$base" == *".css" || "$base" == *".js" ]] && continue
+            if grep -l "$patterns" "$file" &>/dev/null; then
+                found=1
+                echo -e "  ${C_R}[可疑]${C_0} $file"
+                grep -n "$patterns" "$file" 2>/dev/null | head -3 | sed 's/^/      /'
+            fi
+        done < <(find "$dir" -type f \( -name "*.php" -o -name "*.jsp" -o -name "*.asp" -o -name "*.aspx" -o -name "*.sh" -o -name "*.py" \) -print0 2>/dev/null)
+    done
+
+    if [[ "$found" -eq 0 ]]; then
+        _ok "未发现明显的 webshell 特征文件"
+    else
+        _warn "发现可疑文件，请人工复核"
+    fi
+}
+
+_security_login() {
+    _info "登录审计"
+    _line
+
+    _info "最近登录记录 (last)"
+    last -20 2>/dev/null | head -22 || _warn "无法获取登录记录"
+    echo ""
+
+    _info "失败登录记录 (lastb)"
+    lastb -20 2>/dev/null | head -22 || _warn "无法获取失败登录记录 (可能需要 root)"
+    echo ""
+
+    _info "TOP 攻击 IP (失败登录)"
+    _line
+    if [[ -f /var/log/auth.log ]]; then
+        grep "Failed password" /var/log/auth.log 2>/dev/null | awk '{print $(NF-3)}' | sort | uniq -c | sort -rn | head -10 || _warn "暂无数据"
+    elif [[ -f /var/log/secure ]]; then
+        grep "Failed password" /var/log/secure 2>/dev/null | awk '{print $(NF-3)}' | sort | uniq -c | sort -rn | head -10 || _warn "暂无数据"
+    else
+        _warn "未找到认证日志文件"
+    fi
+    echo ""
+
+    _info "当前在线用户"
+    who 2>/dev/null || _warn "无法获取"
+}
+
+_security_banip() {
+    check_root
+    read -rp "$(echo -e "${C_W}输入要封禁的 IP: ${C_0}")" ip
+    [[ -z "$ip" ]] && return
+    if ! [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        _err "无效的 IP 地址"
+        return
+    fi
+
+    # 优先使用 fail2ban
+    if _has fail2ban-client && systemctl is-active fail2ban &>/dev/null; then
+        _info "使用 fail2ban 封禁 ${ip}..."
+        fail2ban-client set sshd banip "$ip" 2>/dev/null && _ok "fail2ban 已封禁 ${ip}" || _err "fail2ban 封禁失败"
+    else
+        _info "使用 iptables 封禁 ${ip}..."
+        if _has iptables; then
+            iptables -I INPUT -s "$ip" -j DROP 2>/dev/null
+            _ok "iptables 已封禁 ${ip}"
+            # 尝试持久化
+            if _has iptables-save; then
+                iptables-save > /etc/iptables.rules 2>/dev/null && _info "规则已保存到 /etc/iptables.rules"
+            fi
+        elif _has nft; then
+            nft add rule inet filter input ip saddr "$ip" drop 2>/dev/null && _ok "nftables 已封禁 ${ip}" || _err "nftables 封禁失败"
+        else
+            _err "未找到 iptables 或 nftables"
+        fi
+    fi
+}
+
+_security_ports() {
+    _info "监听端口及服务"
+    _line
+    if _has ss; then
+        ss -tulpn 2>/dev/null | grep LISTEN || ss -tulp 2>/dev/null | grep LISTEN
+    elif _has netstat; then
+        netstat -tulpn 2>/dev/null | grep LISTEN || netstat -tulp 2>/dev/null | grep LISTEN
+    else
+        _warn "未找到 ss 或 netstat"
+        _pkg_install iproute2 net-tools 2>/dev/null
+        ss -tulpn 2>/dev/null | grep LISTEN || _err "无法获取端口信息"
+    fi
+    echo ""
+
+    _info "常见风险端口提示"
+    _line
+    echo -e "  ${C_Y}21${C_0}   FTP - 建议使用 SFTP 替代"
+    echo -e "  ${C_Y}23${C_0}   Telnet - 明文传输，建议禁用"
+    echo -e "  ${C_Y}3306${C_0} MySQL - 建议限制访问来源"
+    echo -e "  ${C_Y}6379${C_0} Redis - 建议配置密码和绑定 IP"
+    echo -e "  ${C_Y}9200${C_0} Elasticsearch - 建议配置认证"
+}
+
+# ============================ 模块: 磁盘IO性能 =============================
+m_io() {
+    _title "磁盘 IO 性能 - 监控、测试、健康检测"
+    while true; do
+        echo -e "  ${C_G}1)${C_0} 磁盘 IO 实时监控"
+        echo -e "  ${C_G}2)${C_0} 磁盘读写速度测试"
+        echo -e "  ${C_G}3)${C_0} 磁盘健康检测"
+        echo -e "  ${C_G}0)${C_0} 返回主菜单"
+        echo ""
+        read -rp "$(echo -e "${C_W}选择 [0-3]: ${C_0}")" choice
+        case "$choice" in
+            1) _io_monitor ;; 2) _io_test ;;
+            3) _io_smart ;;
+            0) break ;; *) _warn "无效选择" ;;
+        esac
+        [[ "$choice" != "0" ]] && _pause
+    done
+}
+
+_io_monitor() {
+    check_root
+    if _has iotop; then
+        _info "启动 iotop (按 Q 退出)..."
+        iotop -o -b -n 10 2>/dev/null || iotop -o 2>/dev/null
+    else
+        _warn "iotop 未安装，尝试安装..."
+        _pkg_install iotop 2>/dev/null
+        if _has iotop; then
+            iotop -o -b -n 10 2>/dev/null
+        else
+            _warn "iotop 安装失败，尝试使用 iostat..."
+            if _has iostat; then
+                iostat -x 1 10 2>/dev/null
+            else
+                _pkg_install sysstat 2>/dev/null && iostat -x 1 10 2>/dev/null || _err "无法安装 IO 监控工具"
+            fi
+        fi
+    fi
+}
+
+_io_test() {
+    check_root
+    if ! _has fio; then
+        _info "fio 未安装，正在安装..."
+        _pkg_install fio 2>/dev/null || { _err "fio 安装失败"; return; }
+    fi
+
+    read -rp "$(echo -e "${C_W}测试目录 (默认 /tmp): ${C_0}")" testdir
+    [[ -z "$testdir" ]] && testdir="/tmp"
+    [[ ! -d "$testdir" ]] && { _err "目录不存在"; return; }
+
+    _confirm "将在 ${testdir} 运行 fio 测试，可能耗时数分钟，确认？" || return
+
+    _info "顺序读测试 (128k)..."
+    fio --name=seq_read --directory="$testdir" --rw=read --bs=128k --size=512m --numjobs=1 --runtime=30 --direct=1 --group_reporting 2>/dev/null | grep -E "read:|BW|IOPS" | head -5
+    echo ""
+
+    _info "顺序写测试 (128k)..."
+    fio --name=seq_write --directory="$testdir" --rw=write --bs=128k --size=512m --numjobs=1 --runtime=30 --direct=1 --group_reporting 2>/dev/null | grep -E "write:|BW|IOPS" | head -5
+    echo ""
+
+    _info "随机读测试 (4k)..."
+    fio --name=rand_read --directory="$testdir" --rw=randread --bs=4k --size=256m --numjobs=4 --runtime=30 --direct=1 --group_reporting 2>/dev/null | grep -E "read:|BW|IOPS" | head -5
+    echo ""
+
+    _info "随机写测试 (4k)..."
+    fio --name=rand_write --directory="$testdir" --rw=randwrite --bs=4k --size=256m --numjobs=4 --runtime=30 --direct=1 --group_reporting 2>/dev/null | grep -E "write:|BW|IOPS" | head -5
+    echo ""
+
+    rm -f "${testdir}"/seq_read.* "${testdir}"/seq_write.* "${testdir}"/rand_read.* "${testdir}"/rand_write.* 2>/dev/null
+    _ok "测试完成，临时文件已清理"
+}
+
+_io_smart() {
+    if ! _has smartctl; then
+        _warn "smartctl 未安装，尝试安装..."
+        _pkg_install smartmontools 2>/dev/null || { _err "smartmontools 安装失败"; return; }
+    fi
+
+    _info "可用磁盘"
+    _line
+    lsblk -ndo NAME,SIZE,TYPE,MODEL 2>/dev/null | grep disk || fdisk -l 2>/dev/null | grep "Disk /dev" | head -10
+    echo ""
+    read -rp "$(echo -e "${C_W}输入磁盘设备 (如 /dev/sda): ${C_0}")" disk
+    [[ -z "$disk" ]] && return
+    if [[ ! -b "$disk" ]]; then
+        _err "设备不存在: $disk"
+        return
+    fi
+
+    _info "SMART 状态: ${disk}"
+    _line
+    smartctl -H "$disk" 2>/dev/null || _err "无法获取 SMART 状态"
+    echo ""
+    _info "详细 SMART 信息"
+    _line
+    smartctl -a "$disk" 2>/dev/null | grep -E "Model|Serial|Temperature|Reallocated|Pending|Uncorrectable|Power_On|Wear_Level" || _warn "无法获取详细信息"
+}
+
+# ============================ 模块: 用户权限 =============================
+m_user() {
+    _title "用户权限 - 用户管理、sudo、权限修复"
+    while true; do
+        echo -e "  ${C_G}1)${C_0} 查看系统用户"
+        echo -e "  ${C_G}2)${C_0} 添加用户"
+        echo -e "  ${C_G}3)${C_0} 删除用户"
+        echo -e "  ${C_G}4)${C_0} 修改用户密码"
+        echo -e "  ${C_G}5)${C_0} 添加/移除 sudo 权限"
+        echo -e "  ${C_G}6)${C_0} 文件权限批量修复"
+        echo -e "  ${C_G}0)${C_0} 返回主菜单"
+        echo ""
+        read -rp "$(echo -e "${C_W}选择 [0-6]: ${C_0}")" choice
+        case "$choice" in
+            1) _user_list ;; 2) _user_add ;;
+            3) _user_del ;; 4) _user_passwd ;;
+            5) _user_sudo ;; 6) _user_fixperms ;;
+            0) break ;; *) _warn "无效选择" ;;
+        esac
+        [[ "$choice" != "0" ]] && _pause
+    done
+}
+
+_user_list() {
+    _info "系统用户列表"
+    _line
+    printf "  %-15s %-6s %-6s %-20s %s\n" "用户名" "UID" "GID" "家目录" "Shell"
+    while IFS=: read -r user pass uid gid desc home shell; do
+        [[ "$uid" -ge 1000 && "$uid" -lt 65534 ]] || [[ "$uid" -eq 0 ]] || continue
+        printf "  %-15s %-6s %-6s %-20s %s\n" "$user" "$uid" "$gid" "$home" "$shell"
+    done < /etc/passwd
+    echo ""
+    _info "当前在线用户"
+    who 2>/dev/null || _warn "无法获取"
+}
+
+_user_add() {
+    check_root
+    read -rp "$(echo -e "${C_W}输入用户名: ${C_0}")" username
+    [[ -z "$username" ]] && return
+    if id "$username" &>/dev/null; then
+        _err "用户已存在"
+        return
+    fi
+
+    read -rp "$(echo -e "${C_W}输入密码 (回车自动生成): ${C_0}")" upass
+    if [[ -z "$upass" ]]; then
+        upass=$(tr -dc 'a-zA-Z0-9' < /dev/urandom 2>/dev/null | head -c 12)
+        _info "自动生成密码: ${C_W}${upass}${C_0}"
+    fi
+
+    read -rp "$(echo -e "${C_W}是否添加 sudo 权限 [y/N]: ${C_0}")" sudo_yes
+
+    useradd -m -s /bin/bash "$username" 2>/dev/null
+    if [[ $? -ne 0 ]]; then
+        _err "用户创建失败"
+        return
+    fi
+
+    echo "${username}:${upass}" | chpasswd 2>/dev/null
+    _ok "用户 ${username} 创建成功"
+
+    if [[ "$sudo_yes" =~ ^[Yy]$ ]]; then
+        if [[ -d /etc/sudoers.d ]]; then
+            echo "${username} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${username}" && chmod 440 "/etc/sudoers.d/${username}"
+        else
+            echo "${username} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+        fi
+        _ok "已添加 sudo 权限"
+    fi
+}
+
+_user_del() {
+    check_root
+    read -rp "$(echo -e "${C_W}输入要删除的用户名: ${C_0}")" username
+    [[ -z "$username" ]] && return
+    if [[ "$username" == "root" ]]; then
+        _err "不能删除 root 用户"
+        return
+    fi
+    if ! id "$username" &>/dev/null; then
+        _err "用户不存在"
+        return
+    fi
+    _confirm "确认删除用户 ${username} 及其家目录？" || return
+    userdel -r "$username" 2>/dev/null && _ok "用户 ${username} 已删除" || _err "删除失败"
+    rm -f "/etc/sudoers.d/${username}" 2>/dev/null
+}
+
+_user_passwd() {
+    check_root
+    read -rp "$(echo -e "${C_W}输入用户名: ${C_0}")" username
+    [[ -z "$username" ]] && return
+    if ! id "$username" &>/dev/null; then
+        _err "用户不存在"
+        return
+    fi
+    read -rsp "$(echo -e "${C_W}输入新密码: ${C_0}")" upass
+    echo ""
+    [[ -z "$upass" ]] && { _err "密码不能为空"; return; }
+    echo "${username}:${upass}" | chpasswd 2>/dev/null && _ok "密码已修改" || _err "密码修改失败"
+}
+
+_user_sudo() {
+    check_root
+    read -rp "$(echo -e "${C_W}输入用户名: ${C_0}")" username
+    [[ -z "$username" ]] && return
+    if ! id "$username" &>/dev/null; then
+        _err "用户不存在"
+        return
+    fi
+
+    echo -e "  ${C_G}1)${C_0} 添加 sudo 权限"
+    echo -e "  ${C_G}2)${C_0} 移除 sudo 权限"
+    read -rp "$(echo -e "${C_W}选择 [1-2]: ${C_0}")" schoice
+
+    case "$schoice" in
+        1)
+            if [[ -d /etc/sudoers.d ]]; then
+                echo "${username} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${username}" && chmod 440 "/etc/sudoers.d/${username}"
+            else
+                if ! grep -q "^${username} " /etc/sudoers; then
+                    echo "${username} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+                fi
+            fi
+            _ok "已添加 sudo 权限"
+            ;;
+        2)
+            rm -f "/etc/sudoers.d/${username}" 2>/dev/null
+            sed -i "/^${username} /d" /etc/sudoers 2>/dev/null
+            _ok "已移除 sudo 权限"
+            ;;
+    esac
+}
+
+_user_fixperms() {
+    check_root
+    read -rp "$(echo -e "${C_W}目标目录 (默认 /www): ${C_0}")" target
+    [[ -z "$target" ]] && target="/www"
+    [[ ! -d "$target" ]] && { _err "目录不存在: $target"; return; }
+
+    read -rp "$(echo -e "${C_W}设置所有者 (默认 www): ${C_0}")" owner
+    [[ -z "$owner" ]] && owner="www"
+    read -rp "$(echo -e "${C_W}设置所属组 (默认 www): ${C_0}")" group
+    [[ -z "$group" ]] && group="www"
+
+    _confirm "将 ${target} 权限修复为 755 ${owner}:${group}？" || return
+
+    chown -R "${owner}:${group}" "$target" 2>/dev/null
+    find "$target" -type d -exec chmod 755 {} \; 2>/dev/null
+    find "$target" -type f -exec chmod 644 {} \; 2>/dev/null
+    _ok "权限修复完成"
+    _info "目录: 755, 文件: 644, 所有者: ${owner}:${group}"
+}
+
+# ============================ 模块: 内网穿透 =============================
+m_nat() {
+    _title "内网穿透 - frp、nps 安装与配置"
+    while true; do
+        echo -e "  ${C_G}1)${C_0} 安装 frp"
+        echo -e "  ${C_G}2)${C_0} 配置 frpc"
+        echo -e "  ${C_G}3)${C_0} 启动/停止 frpc"
+        echo -e "  ${C_G}4)${C_0} 安装 nps"
+        echo -e "  ${C_G}5)${C_0} 查看内网穿透状态"
+        echo -e "  ${C_G}0)${C_0} 返回主菜单"
+        echo ""
+        read -rp "$(echo -e "${C_W}选择 [0-5]: ${C_0}")" choice
+        case "$choice" in
+            1) _nat_frp_install ;; 2) _nat_frpc_config ;;
+            3) _nat_frpc_control ;; 4) _nat_nps_install ;;
+            5) _nat_status ;;
+            0) break ;; *) _warn "无效选择" ;;
+        esac
+        [[ "$choice" != "0" ]] && _pause
+    done
+}
+
+_nat_frp_install() {
+    check_root
+    local frp_dir="/opt/frp"
+    if [[ -d "$frp_dir" ]]; then
+        _warn "frp 目录已存在: $frp_dir"
+        _confirm "是否重新安装？" || return
+        rm -rf "$frp_dir"
+    fi
+
+    _info "获取最新 frp 版本..."
+    local latest
+    latest=$(curl -sL https://api.github.com/repos/fatedier/frp/releases/latest 2>/dev/null | grep '"tag_name":' | head -1 | cut -d'"' -f4)
+    [[ -z "$latest" ]] && latest="v0.60.0"
+    _info "最新版本: ${latest}"
+
+    local arch
+    case "$(uname -m)" in
+        x86_64) arch="amd64" ;;
+        aarch64|arm64) arch="arm64" ;;
+        armv7l) arch="arm" ;;
+        *) arch="amd64" ;;
+    esac
+
+    local download_url="https://github.com/fatedier/frp/releases/download/${latest}/frp_${latest#v}_linux_${arch}.tar.gz"
+    local tmpfile="/tmp/frp.tar.gz"
+
+    _info "下载 frp..."
+    curl -sL "$download_url" -o "$tmpfile" 2>/dev/null || wget -q "$download_url" -O "$tmpfile" 2>/dev/null
+    if [[ ! -f "$tmpfile" ]]; then
+        _err "下载失败"
+        return
+    fi
+
+    mkdir -p "$frp_dir"
+    tar -xzf "$tmpfile" -C "$frp_dir" --strip-components=1 2>/dev/null
+    rm -f "$tmpfile"
+
+    if [[ ! -f "${frp_dir}/frpc" ]]; then
+        _err "安装失败，未找到 frpc"
+        return
+    fi
+
+    chmod +x "${frp_dir}"/frpc "${frp_dir}"/frps 2>/dev/null
+    _ok "frp 安装完成: ${frp_dir}"
+    echo -e "  ${C_D}frpc: ${frp_dir}/frpc${C_0}"
+    echo -e "  ${C_D}frps: ${frp_dir}/frps${C_0}"
+}
+
+_nat_frpc_config() {
+    check_root
+    local frp_dir="/opt/frp"
+    if [[ ! -d "$frp_dir" ]]; then
+        _err "frp 未安装，请先安装"
+        return
+    fi
+
+    local config="${frp_dir}/frpc.toml"
+    _info "配置 frpc"
+    read -rp "$(echo -e "${C_W}服务器地址 (frps IP/域名): ${C_0}")" server_addr
+    [[ -z "$server_addr" ]] && { _err "服务器地址不能为空"; return; }
+    read -rp "$(echo -e "${C_W}服务器端口 (默认 7000): ${C_0}")" server_port
+    [[ -z "$server_port" ]] && server_port="7000"
+    read -rp "$(echo -e "${C_W}认证 Token: ${C_0}")" token
+    read -rp "$(echo -e "${C_W}本地服务端口 (如 8080): ${C_0}")" local_port
+    [[ -z "$local_port" ]] && { _err "本地端口不能为空"; return; }
+    read -rp "$(echo -e "${C_W}远程映射端口 (如 18080): ${C_0}")" remote_port
+    [[ -z "$remote_port" ]] && remote_port="18080"
+    read -rp "$(echo -e "${C_W}代理名称 (默认 web): ${C_0}")" proxy_name
+    [[ -z "$proxy_name" ]] && proxy_name="web"
+
+    cat > "$config" << EOF
+serverAddr = "${server_addr}"
+serverPort = ${server_port}
+auth.method = "token"
+auth.token = "${token}"
+
+[[proxies]]
+name = "${proxy_name}"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = ${local_port}
+remotePort = ${remote_port}
+EOF
+
+    _ok "frpc 配置已写入: $config"
+    echo ""
+    cat "$config"
+}
+
+_nat_frpc_control() {
+    check_root
+    local frp_dir="/opt/frp"
+    if [[ ! -f "${frp_dir}/frpc" ]]; then
+        _err "frpc 未安装"
+        return
+    fi
+
+    local svc_file="/etc/systemd/system/frpc.service"
+    if [[ ! -f "$svc_file" ]]; then
+        _info "创建 systemd 服务..."
+        cat > "$svc_file" << EOF
+[Unit]
+Description=frp client
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=${frp_dir}
+ExecStart=${frp_dir}/frpc -c ${frp_dir}/frpc.toml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        systemctl daemon-reload 2>/dev/null
+        systemctl enable frpc 2>/dev/null
+        _ok "frpc systemd 服务已创建"
+    fi
+
+    echo -e "  ${C_G}1)${C_0} 启动  ${C_G}2)${C_0} 停止  ${C_G}3)${C_0} 重启  ${C_G}4)${C_0} 查看状态"
+    read -rp "$(echo -e "${C_W}选择 [1-4]: ${C_0}")" fc
+    case "$fc" in
+        1) systemctl start frpc && _ok "frpc 已启动" ;;
+        2) systemctl stop frpc && _ok "frpc 已停止" ;;
+        3) systemctl restart frpc && _ok "frpc 已重启" ;;
+        4) systemctl status frpc --no-pager | head -15 ;;
+    esac
+}
+
+_nat_nps_install() {
+    check_root
+    local nps_dir="/opt/nps"
+    if [[ -d "$nps_dir" ]]; then
+        _warn "nps 目录已存在"
+        _confirm "是否重新安装？" || return
+        systemctl stop nps 2>/dev/null
+        rm -rf "$nps_dir"
+    fi
+
+    _info "获取最新 nps 版本..."
+    local latest
+    latest=$(curl -sL https://api.github.com/repos/ehang-io/nps/releases/latest 2>/dev/null | grep '"tag_name":' | head -1 | cut -d'"' -f4)
+    [[ -z "$latest" ]] && latest="v0.26.10"
+    _info "最新版本: ${latest}"
+
+    local arch
+    case "$(uname -m)" in
+        x86_64) arch="amd64" ;;
+        aarch64|arm64) arch="arm64" ;;
+        armv7l) arch="arm_v7" ;;
+        *) arch="amd64" ;;
+    esac
+
+    local download_url="https://github.com/ehang-io/nps/releases/download/${latest}/linux_${arch}_server.tar.gz"
+    local tmpfile="/tmp/nps.tar.gz"
+
+    _info "下载 nps..."
+    curl -sL "$download_url" -o "$tmpfile" 2>/dev/null || wget -q "$download_url" -O "$tmpfile" 2>/dev/null
+    if [[ ! -f "$tmpfile" ]]; then
+        _err "下载失败"
+        return
+    fi
+
+    mkdir -p "$nps_dir"
+    tar -xzf "$tmpfile" -C "$nps_dir" --strip-components=1 2>/dev/null
+    rm -f "$tmpfile"
+
+    if [[ ! -f "${nps_dir}/nps" ]]; then
+        _err "安装失败"
+        return
+    fi
+
+    chmod +x "${nps_dir}"/nps "${nps_dir}"/npc 2>/dev/null
+
+    # 创建 systemd 服务
+    cat > /etc/systemd/system/nps.service << EOF
+[Unit]
+Description=nps server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=${nps_dir}
+ExecStart=${nps_dir}/nps
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload 2>/dev/null
+    systemctl enable nps 2>/dev/null
+    systemctl start nps 2>/dev/null
+
+    _ok "nps 安装完成"
+    echo -e "  ${C_D}安装目录: ${nps_dir}${C_0}"
+    echo -e "  ${C_D}管理面板: http://$(hostname -I 2>/dev/null | awk '{print $1}'):8080${C_0}"
+    echo -e "  ${C_D}默认账号: admin / 123${C_0}"
+}
+
+_nat_status() {
+    _info "内网穿透服务状态"
+    _line
+
+    if systemctl is-active frpc &>/dev/null; then
+        _ok "frpc 运行中"
+        systemctl status frpc --no-pager 2>/dev/null | head -8
+    else
+        _warn "frpc 未运行或未安装"
+    fi
+    echo ""
+
+    if systemctl is-active nps &>/dev/null; then
+        _ok "nps 运行中"
+        systemctl status nps --no-pager 2>/dev/null | head -8
+    else
+        _warn "nps 未运行或未安装"
+    fi
+    echo ""
+
+    if systemctl is-active frps &>/dev/null; then
+        _ok "frps 运行中"
+        systemctl status frps --no-pager 2>/dev/null | head -8
+    else
+        _warn "frps 未运行或未安装"
+    fi
+}
+
+# ============================ 模块: 邮件告警 =============================
+m_mail() {
+    _title "邮件告警 - 邮件配置、测试、系统告警"
+    while true; do
+        echo -e "  ${C_G}1)${C_0} 配置邮件发送"
+        echo -e "  ${C_G}2)${C_0} 发送测试邮件"
+        echo -e "  ${C_G}3)${C_0} 查看邮件配置"
+        echo -e "  ${C_G}4)${C_0} 设置系统告警"
+        echo -e "  ${C_G}0)${C_0} 返回主菜单"
+        echo ""
+        read -rp "$(echo -e "${C_W}选择 [0-4]: ${C_0}")" choice
+        case "$choice" in
+            1) _mail_config ;; 2) _mail_test ;;
+            3) _mail_view ;; 4) _mail_alert ;;
+            0) break ;; *) _warn "无效选择" ;;
+        esac
+        [[ "$choice" != "0" ]] && _pause
+    done
+}
+
+_mail_config() {
+    check_root
+    _info "选择邮件发送方式"
+    echo -e "  ${C_G}1)${C_0} msmtp + mutt"
+    echo -e "  ${C_G}2)${C_0} mailx ( heirloom-mailx )"
+    read -rp "$(echo -e "${C_W}选择 [1-2]: ${C_0}")" mchoice
+
+    read -rp "$(echo -e "${C_W}SMTP 服务器 (如 smtp.qq.com:587): ${C_0}")" smtp_server
+    [[ -z "$smtp_server" ]] && { _err "SMTP 服务器不能为空"; return; }
+    read -rp "$(echo -e "${C_W}发件人邮箱: ${C_0}")" from_email
+    [[ -z "$from_email" ]] && { _err "发件人邮箱不能为空"; return; }
+    read -rsp "$(echo -e "${C_W}邮箱密码/授权码: ${C_0}")" smtp_pass
+    echo ""
+    [[ -z "$smtp_pass" ]] && { _err "密码不能为空"; return; }
+    read -rp "$(echo -e "${C_W}收件人邮箱 (默认同发件人): ${C_0}")" to_email
+    [[ -z "$to_email" ]] && to_email="$from_email"
+
+    case "$mchoice" in
+        1)
+            _pkg_install msmtp mutt 2>/dev/null || { _err "安装失败"; return; }
+            mkdir -p /etc/msmtp
+            cat > /etc/msmtprc << EOF
+defaults
+auth           on
+tls            on
+tls_starttls   on
+logfile        /var/log/msmtp.log
+
+account default
+host           ${smtp_server%%:*}
+port           ${smtp_server##*:}
+from           ${from_email}
+user           ${from_email}
+password       ${smtp_pass}
+EOF
+            chmod 600 /etc/msmtprc
+            ln -sf /usr/bin/msmtp /usr/sbin/sendmail 2>/dev/null
+            _ok "msmtp 配置完成"
+            ;;
+        2)
+            _pkg_install mailx 2>/dev/null || _pkg_install heirloom-mailx 2>/dev/null || { _err "安装失败"; return; }
+            cat > /etc/mail.rc << EOF
+set from=${from_email}
+set smtp=${smtp_server}
+set smtp-auth-user=${from_email}
+set smtp-auth-password=${smtp_pass}
+set smtp-auth=login
+EOF
+            _ok "mailx 配置完成"
+            ;;
+        *)
+            _warn "无效选择"
+            return
+            ;;
+    esac
+
+    # 保存通用配置
+    cat > /etc/tinytool_mail.conf << EOF
+TO_EMAIL=${to_email}
+FROM_EMAIL=${from_email}
+METHOD=${mchoice}
+EOF
+    chmod 600 /etc/tinytool_mail.conf
+    _ok "邮件配置已保存"
+}
+
+_mail_test() {
+    check_root
+    if [[ ! -f /etc/tinytool_mail.conf ]]; then
+        _err "邮件未配置，请先配置"
+        return
+    fi
+    source /etc/tinytool_mail.conf
+
+    read -rp "$(echo -e "${C_W}收件人邮箱 (默认 ${TO_EMAIL}): ${C_0}")" test_to
+    [[ -z "$test_to" ]] && test_to="$TO_EMAIL"
+
+    _info "发送测试邮件到 ${test_to}..."
+    local body="TinyTool 测试邮件\n\n时间: $(date)\n主机: $(hostname)\nIP: $(hostname -I 2>/dev/null | awk '{print $1}')"
+
+    if [[ "$METHOD" == "1" ]]; then
+        echo -e "$body" | mutt -s "TinyTool 测试邮件" "$test_to" 2>/dev/null && _ok "发送成功" || _err "发送失败"
+    else
+        echo -e "$body" | mail -s "TinyTool 测试邮件" "$test_to" 2>/dev/null && _ok "发送成功" || _err "发送失败"
+    fi
+}
+
+_mail_view() {
+    _info "当前邮件配置"
+    _line
+    if [[ -f /etc/tinytool_mail.conf ]]; then
+        cat /etc/tinytool_mail.conf
+    else
+        _warn "未找到邮件配置"
+    fi
+    echo ""
+    if [[ -f /etc/msmtprc ]]; then
+        _info "msmtp 配置"
+        _line
+        cat /etc/msmtprc | grep -v password || true
+    fi
+    if [[ -f /etc/mail.rc ]]; then
+        _info "mailx 配置"
+        _line
+        cat /etc/mail.rc | grep -v password || true
+    fi
+}
+
+_mail_alert() {
+    check_root
+    if [[ ! -f /etc/tinytool_mail.conf ]]; then
+        _err "邮件未配置，请先配置邮件发送"
+        return
+    fi
+    source /etc/tinytool_mail.conf
+
+    read -rp "$(echo -e "${C_W}磁盘使用率告警阈值 % (默认 90): ${C_0}")" disk_thresh
+    [[ -z "$disk_thresh" ]] && disk_thresh="90"
+    read -rp "$(echo -e "${C_W}内存使用率告警阈值 % (默认 90): ${C_0}")" mem_thresh
+    [[ -z "$mem_thresh" ]] && mem_thresh="90"
+
+    local script="/usr/local/bin/tinytool_alert.sh"
+    cat > "$script" << 'EOF'
+#!/bin/bash
+source /etc/tinytool_mail.conf
+DISK_THRESH=THRESH_DISK
+MEM_THRESH=THRESH_MEM
+HOST=$(hostname)
+IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+ALERT_MSG=""
+
+# 磁盘检查
+disk_usage=$(df / | tail -1 | awk '{print $5}' | tr -d '%')
+if [[ "$disk_usage" -ge "$DISK_THRESH" ]]; then
+    ALERT_MSG="${ALERT_MSG}磁盘使用率告警: ${disk_usage}%\n"
+fi
+
+# 内存检查
+mem_usage=$(free | grep Mem | awk '{printf("%.0f", $3/$2 * 100.0)}')
+if [[ "$mem_usage" -ge "$MEM_THRESH" ]]; then
+    ALERT_MSG="${ALERT_MSG}内存使用率告警: ${mem_usage}%\n"
+fi
+
+if [[ -n "$ALERT_MSG" ]]; then
+    BODY="主机: ${HOST}\nIP: ${IP}\n时间: $(date)\n\n${ALERT_MSG}"
+    if [[ "$METHOD" == "1" ]]; then
+        echo -e "$BODY" | mutt -s "[告警] ${HOST} 资源异常" "$TO_EMAIL"
+    else
+        echo -e "$BODY" | mail -s "[告警] ${HOST} 资源异常" "$TO_EMAIL"
+    fi
+fi
+EOF
+    sed -i "s/THRESH_DISK/${disk_thresh}/g" "$script"
+    sed -i "s/THRESH_MEM/${mem_thresh}/g" "$script"
+    chmod +x "$script"
+
+    read -rp "$(echo -e "${C_W}Cron 检查间隔 (如 '*/10 * * * *' 每10分钟): ${C_0}")" cronexp
+    [[ -z "$cronexp" ]] && cronexp="*/10 * * * *"
+
+    (crontab -l 2>/dev/null | grep -v "tinytool_alert"; echo "${cronexp} ${script}") | crontab -
+    _ok "系统告警已设置"
+    _info "告警脚本: ${script}"
+    _info "检查间隔: ${cronexp}"
+}
+
+# ============================ 模块: LNMP/LAMP =============================
+m_lnmp() {
+    _title "LNMP/LAMP - 一键安装、状态、虚拟主机"
+    while true; do
+        echo -e "  ${C_G}1)${C_0} 一键安装 LNMP"
+        echo -e "  ${C_G}2)${C_0} 一键安装 LAMP"
+        echo -e "  ${C_G}3)${C_0} 查看 LNMP/LAMP 状态"
+        echo -e "  ${C_G}4)${C_0} 添加虚拟主机"
+        echo -e "  ${C_G}5)${C_0} 删除虚拟主机"
+        echo -e "  ${C_G}0)${C_0} 返回主菜单"
+        echo ""
+        read -rp "$(echo -e "${C_W}选择 [0-5]: ${C_0}")" choice
+        case "$choice" in
+            1) _lnmp_install ;; 2) _lamp_install ;;
+            3) _lnmp_status ;; 4) _lnmp_vhost_add ;;
+            5) _lnmp_vhost_del ;;
+            0) break ;; *) _warn "无效选择" ;;
+        esac
+        [[ "$choice" != "0" ]] && _pause
+    done
+}
+
+_lnmp_install() {
+    check_root
+    if _has nginx && _has mysql 2>/dev/null || _has mariadb 2>/dev/null; then
+        _warn "检测到已安装的 Web/DB 服务"
+        _confirm "继续安装可能冲突，是否继续？" || return
+    fi
+
+    _info "正在安装 LNMP (Nginx + MySQL/MariaDB + PHP)..."
+    if [[ "$PM" == "apt" ]]; then
+        _pkg_install nginx
+        _pkg_install mariadb-server mariadb-client || _pkg_install mysql-server mysql-client
+        _pkg_install php-fpm php-mysql php-curl php-gd php-mbstring php-xml php-zip
+    else
+        _pkg_install epel-release 2>/dev/null
+        _pkg_install nginx
+        _pkg_install mariadb-server mariadb || _pkg_install mysql-community-server
+        _pkg_install php php-fpm php-mysqlnd php-gd php-mbstring php-xml php-zip
+    fi
+
+    systemctl enable nginx 2>/dev/null; systemctl start nginx 2>/dev/null
+    systemctl enable php-fpm 2>/dev/null; systemctl start php-fpm 2>/dev/null
+    systemctl enable mariadb 2>/dev/null; systemctl start mariadb 2>/dev/null || \
+    systemctl enable mysql 2>/dev/null; systemctl start mysql 2>/dev/null
+
+    _ok "LNMP 安装完成"
+    _lnmp_status
+}
+
+_lamp_install() {
+    check_root
+    if _has httpd 2>/dev/null || _has apache2 2>/dev/null; then
+        _warn "检测到已安装的 Apache"
+        _confirm "继续安装可能冲突，是否继续？" || return
+    fi
+
+    _info "正在安装 LAMP (Apache + MySQL/MariaDB + PHP)..."
+    if [[ "$PM" == "apt" ]]; then
+        _pkg_install apache2
+        _pkg_install mariadb-server mariadb-client || _pkg_install mysql-server mysql-client
+        _pkg_install libapache2-mod-php php-mysql php-curl php-gd php-mbstring php-xml php-zip
+        a2enmod php* 2>/dev/null || a2enmod mpm_prefork 2>/dev/null
+    else
+        _pkg_install httpd
+        _pkg_install mariadb-server mariadb || _pkg_install mysql-community-server
+        _pkg_install php php-mysqlnd php-gd php-mbstring php-xml php-zip
+    fi
+
+    systemctl enable apache2 2>/dev/null; systemctl start apache2 2>/dev/null || \
+    systemctl enable httpd 2>/dev/null; systemctl start httpd 2>/dev/null
+    systemctl enable mariadb 2>/dev/null; systemctl start mariadb 2>/dev/null || \
+    systemctl enable mysql 2>/dev/null; systemctl start mysql 2>/dev/null
+
+    _ok "LAMP 安装完成"
+    _lnmp_status
+}
+
+_lnmp_status() {
+    _info "Web 服务器状态"
+    _line
+    if systemctl is-active nginx &>/dev/null; then
+        _ok "Nginx: 运行中"
+        systemctl status nginx --no-pager 2>/dev/null | head -5
+    elif systemctl is-active apache2 &>/dev/null || systemctl is-active httpd &>/dev/null; then
+        _ok "Apache: 运行中"
+        systemctl status apache2 --no-pager 2>/dev/null | head -5 || systemctl status httpd --no-pager 2>/dev/null | head -5
+    else
+        _warn "Web 服务器未运行"
+    fi
+    echo ""
+
+    _info "数据库状态"
+    _line
+    if systemctl is-active mariadb &>/dev/null; then
+        _ok "MariaDB: 运行中"
+        systemctl status mariadb --no-pager 2>/dev/null | head -5
+    elif systemctl is-active mysql &>/dev/null; then
+        _ok "MySQL: 运行中"
+        systemctl status mysql --no-pager 2>/dev/null | head -5
+    else
+        _warn "数据库未运行"
+    fi
+    echo ""
+
+    _info "PHP 状态"
+    _line
+    if systemctl is-active php-fpm &>/dev/null; then
+        _ok "PHP-FPM: 运行中"
+        php -v 2>/dev/null | head -1
+    elif systemctl is-active php*-fpm &>/dev/null; then
+        _ok "PHP-FPM: 运行中"
+        php -v 2>/dev/null | head -1
+    else
+        _warn "PHP-FPM 未运行或未安装"
+    fi
+}
+
+_lnmp_vhost_add() {
+    check_root
+    read -rp "$(echo -e "${C_W}域名 (如 example.com): ${C_0}")" domain
+    [[ -z "$domain" ]] && { _err "域名不能为空"; return; }
+    read -rp "$(echo -e "${C_W}网站目录 (默认 /var/www/${domain}): ${C_0}")" vhost_dir
+    [[ -z "$vhost_dir" ]] && vhost_dir="/var/www/${domain}"
+    mkdir -p "$vhost_dir"
+
+    echo -e "  ${C_G}1)${C_0} Nginx  ${C_G}2)${C_0} Apache"
+    read -rp "$(echo -e "${C_W}选择 Web 服务器 [1-2]: ${C_0}")" ws
+
+    case "$ws" in
+        1)
+            if ! _has nginx; then
+                _err "Nginx 未安装"
+                return
+            fi
+            local conf
+            if [[ -d /etc/nginx/sites-available ]]; then
+                conf="/etc/nginx/sites-available/${domain}"
+                cat > "$conf" << EOF
+server {
+    listen 80;
+    server_name ${domain} www.${domain};
+    root ${vhost_dir};
+    index index.php index.html;
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    location ~ \\.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php-fpm.sock;
+    }
+}
+EOF
+                ln -sf "$conf" "/etc/nginx/sites-enabled/${domain}" 2>/dev/null
+            else
+                conf="/etc/nginx/conf.d/${domain}.conf"
+                cat > "$conf" << EOF
+server {
+    listen 80;
+    server_name ${domain} www.${domain};
+    root ${vhost_dir};
+    index index.php index.html;
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    location ~ \\.php$ {
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_index index.php;
+        include fastcgi_params;
+    }
+}
+EOF
+            fi
+            nginx -t 2>/dev/null && systemctl reload nginx 2>/dev/null && _ok "Nginx 虚拟主机已创建"
+            ;;
+        2)
+            if ! _has apache2 && ! _has httpd; then
+                _err "Apache 未安装"
+                return
+            fi
+            if [[ -d /etc/apache2/sites-available ]]; then
+                local conf="/etc/apache2/sites-available/${domain}.conf"
+                cat > "$conf" << EOF
+<VirtualHost *:80>
+    ServerName ${domain}
+    ServerAlias www.${domain}
+    DocumentRoot ${vhost_dir}
+    <Directory ${vhost_dir}>
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ErrorLog \${APACHE_LOG_DIR}/${domain}-error.log
+    CustomLog \${APACHE_LOG_DIR}/${domain}-access.log combined
+</VirtualHost>
+EOF
+                a2ensite "${domain}.conf" 2>/dev/null
+                systemctl reload apache2 2>/dev/null && _ok "Apache 虚拟主机已创建"
+            else
+                local conf="/etc/httpd/conf.d/${domain}.conf"
+                cat > "$conf" << EOF
+<VirtualHost *:80>
+    ServerName ${domain}
+    ServerAlias www.${domain}
+    DocumentRoot ${vhost_dir}
+    <Directory ${vhost_dir}>
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ErrorLog /var/log/httpd/${domain}-error.log
+    CustomLog /var/log/httpd/${domain}-access.log combined
+</VirtualHost>
+EOF
+                systemctl reload httpd 2>/dev/null && _ok "Apache 虚拟主机已创建"
+            fi
+            ;;
+        *)
+            _warn "无效选择"
+            return
+            ;;
+    esac
+
+    # 创建默认 index 文件
+    cat > "${vhost_dir}/index.html" << EOF
+<!DOCTYPE html>
+<html><head><title>Welcome ${domain}</title></head>
+<body><h1>${domain} is working!</h1></body></html>
+EOF
+    chown -R www-data:www-data "$vhost_dir" 2>/dev/null || chown -R apache:apache "$vhost_dir" 2>/dev/null || chown -R nginx:nginx "$vhost_dir" 2>/dev/null
+    _ok "网站目录: ${vhost_dir}"
+}
+
+_lnmp_vhost_del() {
+    check_root
+    read -rp "$(echo -e "${C_W}输入要删除的域名: ${C_0}")" domain
+    [[ -z "$domain" ]] && return
+
+    _confirm "确认删除 ${domain} 的虚拟主机配置？" || return
+
+    # Nginx
+    rm -f "/etc/nginx/sites-enabled/${domain}" 2>/dev/null
+    rm -f "/etc/nginx/sites-available/${domain}" 2>/dev/null
+    rm -f "/etc/nginx/conf.d/${domain}.conf" 2>/dev/null
+
+    # Apache
+    a2dissite "${domain}.conf" 2>/dev/null
+    rm -f "/etc/apache2/sites-available/${domain}.conf" 2>/dev/null
+    rm -f "/etc/httpd/conf.d/${domain}.conf" 2>/dev/null
+
+    systemctl reload nginx 2>/dev/null
+    systemctl reload apache2 2>/dev/null
+    systemctl reload httpd 2>/dev/null
+    _ok "虚拟主机配置已删除"
+
+    read -rp "$(echo -e "${C_W}是否同时删除网站目录 /var/www/${domain} [y/N]: ${C_0}")" deldir
+    if [[ "$deldir" =~ ^[Yy]$ ]]; then
+        rm -rf "/var/www/${domain}" 2>/dev/null
+        _ok "网站目录已删除"
+    fi
 }
 
 # ============================ 入口 ==========================================

@@ -1478,11 +1478,11 @@ _speedtest_bandwidth() {
     _line
 
     local nodes=(
-        "阿里云镜像|https://mirrors.aliyun.com/centos/timestamp.txt"
-        "腾讯云镜像|https://mirrors.cloud.tencent.com/centos/timestamp.txt"
-        "华为云镜像|https://mirrors.huaweicloud.com/centos/timestamp.txt"
-        "清华源|https://mirrors.tuna.tsinghua.edu.cn/centos/timestamp.txt"
-        "中科大源|https://mirrors.ustc.edu.cn/centos/timestamp.txt"
+        "阿里云镜像|https://mirrors.aliyun.com/centos/RPM-GPG-KEY-CentOS-Official"
+        "腾讯云镜像|https://mirrors.cloud.tencent.com/centos/RPM-GPG-KEY-CentOS-Official"
+        "华为云镜像|https://mirrors.huaweicloud.com/centos/RPM-GPG-KEY-CentOS-Official"
+        "清华源|https://mirrors.tuna.tsinghua.edu.cn/centos/RPM-GPG-KEY-CentOS-Official"
+        "中科大源|https://mirrors.ustc.edu.cn/centos/RPM-GPG-KEY-CentOS-Official"
     )
 
     local results=()
@@ -1490,20 +1490,29 @@ _speedtest_bandwidth() {
     for entry in "${nodes[@]}"; do
         local name="${entry%%|*}"
         local url="${entry##*|}"
-        # 使用 curl 测速：下载 5 秒
-        local speed size time_s http_code
-        local output
-        output=$(curl -o /dev/null -s -w '%{speed_download} %{size_download} %{time_total} %{http_code}' \
-            --max-time 8 --connect-timeout 4 "$url" 2>/dev/null)
-        read -r speed size time_s http_code <<< "$output"
+        local size time_s http_code output
+        # 使用 curl 测速，-L 跟随重定向
+        output=$(curl -o /dev/null -s -L -w '%{size_download} %{time_total} %{http_code}' \
+            --max-time 10 --connect-timeout 5 "$url" 2>/dev/null)
+        read -r size time_s http_code <<< "$output"
 
-        if [[ "$http_code" =~ ^2 && "$speed" != "0.000" ]]; then
-            local speed_mb
-            speed_mb=$(awk "BEGIN{printf \"%.2f\", ${speed}/1048576}")
-            printf "  ${C_G}%-12s${C_0} 下载: ${C_W}%7s MB/s${C_0}  耗时: ${C_D}%ss${C_0}\n" "$name" "$speed_mb" "${time_s}"
-            results+=("${name}|${speed_mb}")
+        if [[ "$http_code" =~ ^2 && "$size" -gt 100 ]]; then
+            # 计算平均下载速度 (bytes/s)
+            local avg_speed_bps
+            avg_speed_bps=$(awk "BEGIN{printf \"%.0f\", ${size}/${time_s}}")
+            local speed_mb speed_kb
+            speed_mb=$(awk "BEGIN{printf \"%.2f\", ${avg_speed_bps}/1048576}")
+            speed_kb=$(awk "BEGIN{printf \"%.0f\", ${avg_speed_bps}/1024}")
+            # 小于 1MB/s 显示 KB/s，否则显示 MB/s
+            if (( $(awk "BEGIN{print (${speed_mb} < 1.0) ? 1 : 0}") )); then
+                printf "  ${C_G}%-12s${C_0} 下载: ${C_W}%6s KB/s${C_0}  耗时: ${C_D}%ss${C_0}  大小: ${C_D}%s${C_0}\n" "$name" "$speed_kb" "${time_s}" "${size}B"
+                results+=("${name}|${speed_mb}")
+            else
+                printf "  ${C_G}%-12s${C_0} 下载: ${C_W}%6s MB/s${C_0}  耗时: ${C_D}%ss${C_0}  大小: ${C_D}%s${C_0}\n" "$name" "$speed_mb" "${time_s}" "${size}B"
+                results+=("${name}|${speed_mb}")
+            fi
         else
-            printf "  ${C_R}%-12s${C_0} 连接失败或超时\n" "$name"
+            printf "  ${C_R}%-12s${C_0} 连接失败或文件无效 (HTTP %s)\n" "$name" "${http_code:-N/A}"
             results+=("${name}|失败")
         fi
     done
@@ -1519,9 +1528,14 @@ _speedtest_bandwidth() {
         fi
     done
     if [[ $count -gt 0 ]]; then
-        local avg
+        local avg avg_kb
         avg=$(awk "BEGIN{printf \"%.2f\", ${total}/${count}}")
-        echo -e "  ${C_P}平均下载速度: ${C_W}${avg} MB/s${C_0} (${count} 个节点)"
+        avg_kb=$(awk "BEGIN{printf \"%.0f\", (${total}/${count})*1024}")
+        if (( $(awk "BEGIN{print (${avg} < 1.0) ? 1 : 0}") )); then
+            echo -e "  ${C_P}平均下载速度: ${C_W}${avg_kb} KB/s${C_0} (${count} 个节点)"
+        else
+            echo -e "  ${C_P}平均下载速度: ${C_W}${avg} MB/s${C_0} (${count} 个节点)"
+        fi
     else
         _warn "所有节点测试失败，请检查网络"
     fi
